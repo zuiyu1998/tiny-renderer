@@ -1,24 +1,28 @@
 mod buffer;
 mod image;
 
-use buffer::Buffer;
-use image::Image;
+use std::{marker::PhantomData, sync::Arc};
+
+use buffer::{Buffer, BufferDescriptor};
+use image::{Image, ImageDescriptor};
 
 ///渲染资源的抽象实例，因为渲染资源通常是固定的，不需要外部扩展。
 pub enum AnyRenderResource {
     OwnedBuffer(Buffer),
-    ImportedBuffer(Buffer),
+    ImportedBuffer(Arc<Buffer>),
     OwnedImage(Image),
-    ImportedImage(Image),
+    ImportedImage(Arc<Image>),
 }
 
 impl AnyRenderResource {
     pub fn borrow(&self) -> AnyRenderResourceRef {
         match self {
             AnyRenderResource::OwnedBuffer(buffer) => AnyRenderResourceRef::Buffer(buffer),
-            _ => {
-                todo!()
+            AnyRenderResource::ImportedBuffer(buffer) => {
+                AnyRenderResourceRef::Buffer(buffer.as_ref())
             }
+            AnyRenderResource::OwnedImage(image) => AnyRenderResourceRef::Image(image),
+            AnyRenderResource::ImportedImage(image) => AnyRenderResourceRef::Image(image.as_ref()),
         }
     }
 }
@@ -28,13 +32,61 @@ pub enum AnyRenderResourceRef<'a> {
     Buffer(&'a Buffer),
 }
 
+#[derive(Clone)]
+pub enum AnyRenderResourceDescriptor {
+    Buffer(BufferDescriptor),
+    Image(ImageDescriptor),
+}
+
 ///描述渲染资源如何被创建
-pub trait RenderResourceDescriptor {
+pub trait RenderResourceDescriptor: Clone + Into<AnyRenderResourceDescriptor> {
     type Resource: RenderResource;
 }
 
+///资源节点的Handle
+pub struct RawResourceNodeHandle {
+    pub id: u32,
+    pub version: u32,
+}
+
+pub struct ResourceNodeHandle<R: RenderResource> {
+    pub raw: RawResourceNodeHandle,
+    pub descriptor: <R as RenderResource>::Descriptor,
+    pub marker: PhantomData<R>,
+}
+
 ///资源节点
-pub struct ResourceNode {}
+/// 一类是graph自己管理的节点
+/// 一类是从外部导入的节点
+pub struct ResourceNode {
+    pub info: GraphResourceInfo,
+}
+
+impl ResourceNode {
+    pub fn new(info: GraphResourceInfo) -> Self {
+        Self { info }
+    }
+
+    pub fn created(info: GraphResourceCreateInfo) -> Self {
+        Self::new(GraphResourceInfo::Created(info))
+    }
+}
+
+#[derive(Clone)]
+pub enum GraphResourceInfo {
+    Created(GraphResourceCreateInfo),
+    Imported(GraphResourceImportInfo),
+}
+
+#[derive(Clone)]
+
+pub struct GraphResourceCreateInfo {
+    pub desciptor: AnyRenderResourceDescriptor,
+}
+
+#[derive(Clone)]
+
+pub struct GraphResourceImportInfo {}
 
 ///渲染资源
 /// Descriptor,渲染资源对应的描述

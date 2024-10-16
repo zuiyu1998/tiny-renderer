@@ -1,8 +1,9 @@
-use super::{AnyRenderResource, AnyRenderResourceRef, RenderResource, RenderResourceDescriptor};
+use super::{
+    AnyRenderResource, AnyRenderResourceDescriptor, AnyRenderResourceRef, RenderResource,
+    RenderResourceDescriptor,
+};
 
 pub struct Image {}
-
-pub struct ImageDescriptor {}
 
 impl RenderResource for Image {
     type Descriptor = ImageDescriptor;
@@ -15,6 +16,14 @@ impl RenderResource for Image {
     }
 }
 
+#[derive(Clone)]
+pub struct ImageDescriptor {}
+
+impl From<ImageDescriptor> for AnyRenderResourceDescriptor {
+    fn from(value: ImageDescriptor) -> Self {
+        AnyRenderResourceDescriptor::Image(value)
+    }
+}
 impl RenderResourceDescriptor for ImageDescriptor {
     type Resource = Image;
 }

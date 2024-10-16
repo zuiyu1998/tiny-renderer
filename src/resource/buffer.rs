@@ -1,8 +1,9 @@
-use super::{AnyRenderResource, AnyRenderResourceRef, RenderResource, RenderResourceDescriptor};
+use super::{
+    AnyRenderResource, AnyRenderResourceDescriptor, AnyRenderResourceRef, RenderResource,
+    RenderResourceDescriptor,
+};
 
 pub struct Buffer {}
-
-pub struct BufferDescriptor {}
 
 impl RenderResource for Buffer {
     type Descriptor = BufferDescriptor;
@@ -12,6 +13,15 @@ impl RenderResource for Buffer {
             AnyRenderResourceRef::Buffer(buffer) => buffer,
             _ => unimplemented!(),
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct BufferDescriptor {}
+
+impl From<BufferDescriptor> for AnyRenderResourceDescriptor {
+    fn from(value: BufferDescriptor) -> Self {
+        AnyRenderResourceDescriptor::Buffer(value)
     }
 }
 
