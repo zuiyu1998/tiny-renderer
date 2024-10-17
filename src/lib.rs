@@ -1,3 +1,4 @@
+mod pass;
 mod resource;
 
 use std::marker::PhantomData;
@@ -7,8 +8,7 @@ use resource::{
     ResourceNodeHandle, VirtualResource,
 };
 
-///pass 节点
-pub struct PassNode {}
+use pass::PassNode;
 
 ///FrameGraph是一个有向无环图，用于渲染数据的整合，cocos的rust版本
 pub struct FrameGraph {
@@ -69,7 +69,14 @@ impl FrameGraph {
 
 impl FrameGraph {
     ///compile阶段
-    pub fn compile(&mut self) {}
+    pub fn compile(&mut self) {
+        //sort 对插入的pass node进行排序
+        self.sort();
+    }
+
+    pub fn sort(&mut self) {
+        self.pass_nodes.sort();
+    }
 
     ///execute阶段
     pub fn execute(&mut self) {}
