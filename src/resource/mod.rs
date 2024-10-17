@@ -1,10 +1,10 @@
 mod buffer;
 mod image;
 
-use std::{marker::PhantomData, sync::Arc};
+use std::{fmt::Debug, marker::PhantomData, sync::Arc};
 
-use buffer::{Buffer, BufferDescriptor};
-use image::{Image, ImageDescriptor};
+pub use buffer::{Buffer, BufferDescriptor};
+pub use image::{Image, ImageDescriptor};
 
 ///渲染资源的抽象实例，因为渲染资源通常是固定的，不需要外部扩展。
 pub enum AnyRenderResource {
@@ -39,7 +39,7 @@ pub enum AnyRenderResourceDescriptor {
 }
 
 ///描述渲染资源如何被创建
-pub trait RenderResourceDescriptor: Clone + Into<AnyRenderResourceDescriptor> {
+pub trait RenderResourceDescriptor: Clone + Debug + Into<AnyRenderResourceDescriptor> {
     type Resource: RenderResource;
 }
 

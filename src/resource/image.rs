@@ -16,7 +16,7 @@ impl RenderResource for Image {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ImageDescriptor {}
 
 impl From<ImageDescriptor> for AnyRenderResourceDescriptor {

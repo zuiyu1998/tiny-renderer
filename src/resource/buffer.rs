@@ -16,7 +16,7 @@ impl RenderResource for Buffer {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BufferDescriptor {}
 
 impl From<BufferDescriptor> for AnyRenderResourceDescriptor {

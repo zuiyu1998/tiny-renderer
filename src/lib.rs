@@ -93,6 +93,8 @@ impl FrameGraph {
                 let write_index = *write_index as usize;
 
                 self.virtual_resources[write_index].update_life_time(index);
+
+                self.virtual_resources[write_index].writer_count += 1;
             }
         }
 
