@@ -1,5 +1,5 @@
 [package]
-name = "frame-graph"
+name = "tiny-renderer"
 version = "0.1.0"
 edition = "2021"
 
