@@ -90,11 +90,20 @@ pub struct ResourceNodeHandle<R: RenderResource> {
 /// 一类是从外部导入的节点
 pub struct ResourceNode {
     pub info: GraphResourceInfo,
+    //引用的数目
+    pub ref_count: u32,
+    pub reader_count: usize,
+    pub writer: Option<u32>,
 }
 
 impl ResourceNode {
     pub fn new(info: GraphResourceInfo) -> Self {
-        Self { info }
+        Self {
+            info,
+            reader_count: 0,
+            ref_count: 0,
+            writer: None,
+        }
     }
 
     pub fn created(info: GraphResourceCreateInfo) -> Self {
