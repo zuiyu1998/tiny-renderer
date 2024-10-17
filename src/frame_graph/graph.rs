@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{
+use super::{
     pass::PassNode,
     resource::{
         GraphResourceCreateInfo, RenderResource, RenderResourceDescriptor, ResourceNode,

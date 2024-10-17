@@ -1440,6 +1440,7 @@ dependencies = [
 name = "tiny-renderer"
 version = "0.1.0"
 dependencies = [
+ "parking_lot",
  "wgpu",
  "winit",
 ]

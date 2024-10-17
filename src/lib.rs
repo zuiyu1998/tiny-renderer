@@ -1,6 +1,4 @@
-mod graph;
-mod pass;
-mod resource;
+mod frame_graph;
 
 pub struct BaseRenderer {}
 

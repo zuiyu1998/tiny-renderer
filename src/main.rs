@@ -17,6 +17,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+pub struct RenderBackend {}
+
 pub enum GraphsContext {
     Uninitialized,
     Initialized(InitializedGraphsContext),
