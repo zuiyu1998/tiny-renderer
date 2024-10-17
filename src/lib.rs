@@ -3,8 +3,8 @@ mod resource;
 use std::marker::PhantomData;
 
 use resource::{
-    GraphResourceCreateInfo, RawResourceNodeHandle, RenderResource, RenderResourceDescriptor,
-    ResourceNode, ResourceNodeHandle,
+    GraphResourceCreateInfo, RenderResource, RenderResourceDescriptor, ResourceNode,
+    ResourceNodeHandle, VirtualResource,
 };
 
 ///pass 节点
@@ -14,6 +14,7 @@ pub struct PassNode {}
 pub struct FrameGraph {
     pass_nodes: Vec<PassNode>,
     resource_nodes: Vec<ResourceNode>,
+    virtual_resources: Vec<VirtualResource>,
 }
 
 pub trait TypeEquals {
@@ -39,28 +40,30 @@ impl FrameGraph {
             Other = <<D as RenderResourceDescriptor>::Resource as RenderResource>::Descriptor,
         >,
     {
-        let handle = self.create_raw_resource_node(GraphResourceCreateInfo {
+        let index = self.create_raw_resource_node(GraphResourceCreateInfo {
             desciptor: descriptor.clone().into(),
         });
 
         ResourceNodeHandle {
-            raw: handle,
+            index,
             descriptor: TypeEquals::same(descriptor),
             marker: PhantomData,
         }
     }
 
-    pub fn create_raw_resource_node(
-        &mut self,
-        info: GraphResourceCreateInfo,
-    ) -> RawResourceNodeHandle {
-        let handle = RawResourceNodeHandle {
-            id: self.resource_nodes.len() as u32,
+    pub fn create_raw_resource_node(&mut self, info: GraphResourceCreateInfo) -> u32 {
+        let index = self.resource_nodes.len() as u32;
+
+        let virtual_resource = VirtualResource {
+            id: index,
             version: 0,
+            ..Default::default()
         };
+        self.virtual_resources.push(virtual_resource);
+
         self.resource_nodes.push(ResourceNode::created(info));
 
-        handle
+        index
     }
 }
 

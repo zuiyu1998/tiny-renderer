@@ -44,13 +44,43 @@ pub trait RenderResourceDescriptor: Clone + Into<AnyRenderResourceDescriptor> {
 }
 
 ///资源节点的Handle
-pub struct RawResourceNodeHandle {
+pub struct VirtualResource {
     pub id: u32,
     pub version: u32,
+    //该资源被使用的次数
+    pub ref_count: u32,
+    //该资源被写入的次数
+    pub writer_count: u32,
+    //是否为导入
+    pub imported: bool,
+    pub never_loaded: bool,
+    pub never_stored: bool,
+    pub memory_less: bool,
+    pub memory_less_msaa: bool,
+    pub first_pass: Option<usize>,
+    pub last_pass: Option<usize>,
+}
+
+impl Default for VirtualResource {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            version: 0,
+            ref_count: 0,
+            writer_count: 0,
+            imported: false,
+            never_loaded: true,
+            never_stored: true,
+            memory_less: false,
+            memory_less_msaa: false,
+            first_pass: None,
+            last_pass: None,
+        }
+    }
 }
 
 pub struct ResourceNodeHandle<R: RenderResource> {
-    pub raw: RawResourceNodeHandle,
+    pub index: u32,
     pub descriptor: <R as RenderResource>::Descriptor,
     pub marker: PhantomData<R>,
 }
