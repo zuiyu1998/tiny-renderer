@@ -73,7 +73,47 @@ impl FrameGraph {
         //sort 对插入的pass node进行排序
         self.sort();
 
+        //去除不需要的资源和pass
         self.cull();
+
+        //计算生命周期
+        self.compute_resource_lifetime();
+    }
+
+    pub fn compute_resource_lifetime(&mut self) {
+        //更新资源的使用范围
+        for (index, pass_node) in self.pass_nodes.iter().enumerate() {
+            for read_index in pass_node.reads.iter() {
+                let read_index = *read_index as usize;
+
+                self.virtual_resources[read_index].update_life_time(index);
+            }
+
+            for write_index in pass_node.writes.iter() {
+                let write_index = *write_index as usize;
+
+                self.virtual_resources[write_index].update_life_time(index);
+            }
+        }
+
+        //更新pass_node中要使用资源
+        for (index, resource) in self.virtual_resources.iter().enumerate() {
+            if resource.first_pass.is_none() || resource.last_pass.is_none() {
+                continue;
+            }
+
+            if resource.ref_count == 0 {
+                continue;
+            }
+
+            self.pass_nodes[resource.first_pass.unwrap() as usize]
+                .resource_request_array
+                .push(index as u32);
+
+            self.pass_nodes[resource.last_pass.unwrap() as usize]
+                .resource_release_array
+                .push(index as u32);
+        }
     }
 
     //清除掉不需要使用的资源和pass
@@ -118,6 +158,11 @@ impl FrameGraph {
                     }
                 }
             }
+        }
+
+        //更新资源的引用
+        for (index, resource_node) in self.resource_nodes.iter().enumerate() {
+            self.virtual_resources[index].ref_count = resource_node.reader_count;
         }
     }
 

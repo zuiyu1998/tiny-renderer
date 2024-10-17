@@ -61,6 +61,20 @@ pub struct VirtualResource {
     pub last_pass: Option<usize>,
 }
 
+impl VirtualResource {
+    pub fn update_life_time(&mut self, pass_index: usize) {
+        if self.first_pass.is_none() {
+            self.first_pass = Some(pass_index);
+        }
+
+        self.last_pass = Some(
+            self.last_pass
+                .map(|last_access| last_access.max(pass_index))
+                .unwrap_or(pass_index),
+        );
+    }
+}
+
 impl Default for VirtualResource {
     fn default() -> Self {
         Self {
@@ -90,9 +104,7 @@ pub struct ResourceNodeHandle<R: RenderResource> {
 /// 一类是从外部导入的节点
 pub struct ResourceNode {
     pub info: GraphResourceInfo,
-    //引用的数目
-    pub ref_count: u32,
-    pub reader_count: usize,
+    pub reader_count: u32,
     pub writer: Option<u32>,
 }
 
@@ -101,7 +113,6 @@ impl ResourceNode {
         Self {
             info,
             reader_count: 0,
-            ref_count: 0,
             writer: None,
         }
     }

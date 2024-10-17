@@ -9,6 +9,9 @@ pub struct PassNode {
     pub reads: Vec<u32>,
 
     pub ref_count: u32,
+
+    pub resource_request_array: Vec<u32>,
+    pub resource_release_array: Vec<u32>,
 }
 
 impl PassNode {
@@ -20,6 +23,8 @@ impl PassNode {
             writes: vec![],
             reads: vec![],
             ref_count: 0,
+            resource_release_array: vec![],
+            resource_request_array: vec![],
         }
     }
 }
