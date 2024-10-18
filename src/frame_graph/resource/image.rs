@@ -3,7 +3,7 @@ use super::{
     RenderResourceDescriptor,
 };
 
-pub struct Image {}
+use crate::renderer::resource::{Image, ImageDescriptor};
 
 impl RenderResource for Image {
     type Descriptor = ImageDescriptor;
@@ -15,9 +15,6 @@ impl RenderResource for Image {
         }
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct ImageDescriptor {}
 
 impl From<ImageDescriptor> for AnyRenderResourceDescriptor {
     fn from(value: ImageDescriptor) -> Self {

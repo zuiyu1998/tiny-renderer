@@ -1,11 +1,11 @@
 use std::error::Error;
 
-use tiny_renderer::render_backend::RenderBackend;
+use tiny_renderer::GraphsContext;
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
     event_loop::{ActiveEventLoop, EventLoop},
-    window::{Window, WindowAttributes, WindowId},
+    window::{WindowAttributes, WindowId},
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -16,35 +16,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     event_loop.run_app(&mut app_state)?;
 
     Ok(())
-}
-
-pub enum GraphsContext {
-    Uninitialized,
-    Initialized(InitializedGraphsContext),
-}
-
-pub struct InitializedGraphsContext {
-    primary_window: Window,
-    render_backend: RenderBackend,
-}
-
-impl InitializedGraphsContext {
-    pub fn new(primary_window: Window) -> Self {
-        let render_backend = RenderBackend::create_render_backend(&primary_window);
-
-        Self {
-            primary_window,
-            render_backend,
-        }
-    }
-}
-
-impl GraphsContext {
-    pub fn initialize(&mut self, window: Window) {
-        if let GraphsContext::Uninitialized = self {
-            *self = GraphsContext::Initialized(InitializedGraphsContext::new(window));
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -67,6 +38,10 @@ pub struct AppState {
     graphs_context: GraphsContext,
     pub initialized: bool,
     lifecycle: AppLifecycle,
+
+    //判断是否要update
+    ran_update_since_last_redraw: bool,
+    redraw_requested: bool,
 }
 
 impl AppState {
@@ -75,7 +50,13 @@ impl AppState {
             graphs_context: GraphsContext::Uninitialized,
             initialized: false,
             lifecycle: AppLifecycle::Idle,
+            redraw_requested: false,
+            ran_update_since_last_redraw: false,
         }
+    }
+
+    pub fn run_app_update(&mut self) {
+        self.graphs_context.update();
     }
 
     pub fn initialize(&mut self, event_loop: &ActiveEventLoop) {
@@ -104,14 +85,33 @@ impl ApplicationHandler for AppState {
             WindowEvent::CloseRequested => {
                 event_loop.exit();
             }
+            WindowEvent::RedrawRequested => {
+                self.ran_update_since_last_redraw = false;
+            }
             _ => {}
         }
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        let mut should_update = true;
+
         if self.lifecycle == AppLifecycle::WillResume {
             if !self.initialized {
                 self.initialize(event_loop);
+            }
+
+            self.lifecycle = AppLifecycle::Running;
+            should_update = true;
+            self.redraw_requested = true;
+        }
+
+        if should_update {
+            if !self.ran_update_since_last_redraw {
+                self.run_app_update();
+
+                self.ran_update_since_last_redraw = true;
+            } else {
+                self.redraw_requested = true;
             }
         }
     }

@@ -3,8 +3,7 @@ mod image;
 
 use std::{fmt::Debug, marker::PhantomData, sync::Arc};
 
-pub use buffer::{Buffer, BufferDescriptor};
-pub use image::{Image, ImageDescriptor};
+use crate::renderer::resource::{Buffer, BufferDescriptor, Image, ImageDescriptor};
 
 ///渲染资源的抽象实例，因为渲染资源通常是固定的，不需要外部扩展。
 pub enum AnyRenderResource {

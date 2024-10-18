@@ -1,9 +1,9 @@
+use crate::renderer::resource::{Buffer, BufferDescriptor};
+
 use super::{
     AnyRenderResource, AnyRenderResourceDescriptor, AnyRenderResourceRef, RenderResource,
     RenderResourceDescriptor,
 };
-
-pub struct Buffer {}
 
 impl RenderResource for Buffer {
     type Descriptor = BufferDescriptor;
@@ -15,9 +15,6 @@ impl RenderResource for Buffer {
         }
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct BufferDescriptor {}
 
 impl From<BufferDescriptor> for AnyRenderResourceDescriptor {
     fn from(value: BufferDescriptor) -> Self {
