@@ -7,3 +7,4 @@ edition = "2021"
 winit = { version = "0.30.5" }
 wgpu = { version = "22.1.0" }
 parking_lot = { version = "0.12" }
+futures-lite = { version = "2.3" }

@@ -1,0 +1,103 @@
+use parking_lot::Mutex;
+use std::sync::Arc;
+use wgpu::{Adapter, Device, Instance, Queue, RequestAdapterOptions};
+use winit::window::Window;
+
+pub struct WgpuWrapper<T>(T);
+
+impl<T> WgpuWrapper<T> {
+    pub fn new(t: T) -> Self {
+        Self(t)
+    }
+
+    pub fn into_inner(self) -> T {
+        self.0
+    }
+}
+
+pub struct RenderBackend {
+    device: RenderDevice,
+    queue: RenderQueue,
+    instance: RenderInstance,
+    adapter: RenderAdapter,
+}
+
+pub struct RenderDevice(Arc<WgpuWrapper<Device>>);
+pub struct RenderQueue(Arc<WgpuWrapper<Queue>>);
+pub struct RenderInstance(Arc<WgpuWrapper<Instance>>);
+pub struct RenderAdapter(Arc<WgpuWrapper<Adapter>>);
+
+struct FutureRendererResources(
+    Arc<Mutex<Option<(RenderDevice, RenderQueue, RenderAdapter, RenderInstance)>>>,
+);
+
+impl RenderBackend {
+    pub fn create_render_backend(primary_window: &Window) -> Self {
+        let future_renderer_resources_wrapper = Arc::new(Mutex::new(None));
+
+        let future_renderer_resources_wrapper_clone = future_renderer_resources_wrapper.clone();
+        let async_renderer = async move {
+            let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+                ..Default::default()
+            });
+
+            let request_adapter_options = wgpu::RequestAdapterOptions {
+                ..Default::default()
+            };
+
+            let (device, queue, render_adapter) =
+                initialize_renderer(&instance, &request_adapter_options).await;
+
+            let mut future_renderer_resources_inner =
+                future_renderer_resources_wrapper_clone.lock();
+
+            *future_renderer_resources_inner = Some((
+                device,
+                queue,
+                render_adapter,
+                RenderInstance(Arc::new(WgpuWrapper::new(instance))),
+            ));
+        };
+
+        futures_lite::future::block_on(async_renderer);
+
+        let (device, queue, adapter, instance) =
+            future_renderer_resources_wrapper.lock().take().unwrap();
+
+        RenderBackend {
+            device,
+            queue,
+            adapter,
+            instance,
+        }
+    }
+}
+
+pub async fn initialize_renderer(
+    instance: &Instance,
+    request_adapter_options: &RequestAdapterOptions<'_, '_>,
+) -> (RenderDevice, RenderQueue, RenderAdapter) {
+    let adapter = instance
+        .request_adapter(request_adapter_options)
+        .await
+        .expect("request adapter fail");
+
+    let (device, queue) = adapter
+        .request_device(
+            &wgpu::DeviceDescriptor {
+                ..Default::default()
+            },
+            None,
+        )
+        .await
+        .unwrap();
+    let queue = Arc::new(WgpuWrapper::new(queue));
+    let adapter = Arc::new(WgpuWrapper::new(adapter));
+    let device = Arc::new(WgpuWrapper::new(device));
+
+    (
+        RenderDevice(device),
+        RenderQueue(queue),
+        RenderAdapter(adapter),
+    )
+}

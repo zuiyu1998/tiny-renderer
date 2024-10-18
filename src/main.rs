@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use tiny_renderer::render_backend::RenderBackend;
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -17,20 +18,24 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub struct RenderBackend {}
-
 pub enum GraphsContext {
     Uninitialized,
     Initialized(InitializedGraphsContext),
 }
 
 pub struct InitializedGraphsContext {
-    window: Window,
+    primary_window: Window,
+    render_backend: RenderBackend,
 }
 
 impl InitializedGraphsContext {
-    pub fn new(window: Window) -> Self {
-        Self { window }
+    pub fn new(primary_window: Window) -> Self {
+        let render_backend = RenderBackend::create_render_backend(&primary_window);
+
+        Self {
+            primary_window,
+            render_backend,
+        }
     }
 }
 
