@@ -1,17 +1,32 @@
 pub mod resource;
 
+use crate::frame_graph::FrameGraph;
 use crate::render_backend::RenderBackend;
 
-pub struct BaseRenderer {}
+pub struct WorldRenderer {}
 
 pub struct Renderer {
-    base_renderer: BaseRenderer,
+    backend: RenderBackend,
+    world_renderer: WorldRenderer,
+    fg: FrameGraph,
 }
 
 impl Renderer {
-    pub fn new(_backend: &RenderBackend) -> Self {
+    pub fn new(backend: RenderBackend) -> Self {
         Self {
-            base_renderer: BaseRenderer {},
+            world_renderer: WorldRenderer {},
+            backend,
+            fg: FrameGraph::default(),
         }
+    }
+
+    pub fn prepare(&mut self) {}
+
+    pub fn render(&mut self) {
+        self.prepare();
+
+        self.fg.compile();
+
+        self.fg.execute();
     }
 }

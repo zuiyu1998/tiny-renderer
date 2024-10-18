@@ -5,6 +5,20 @@ use std::{fmt::Debug, marker::PhantomData, sync::Arc};
 
 use crate::renderer::resource::{Buffer, BufferDescriptor, Image, ImageDescriptor};
 
+use super::FrameGraph;
+
+pub trait ImportExportToFrameGraph
+where
+    Self: RenderResource + Sized,
+{
+    fn import(self: Arc<Self>, fg: &mut FrameGraph) -> ResourceNodeHandle<Self>;
+
+    fn export(
+        resource: ResourceNodeHandle<Self>,
+        fg: &mut FrameGraph,
+    ) -> ExportedResourceNodeHandle<Self>;
+}
+
 ///渲染资源的抽象实例，因为渲染资源通常是固定的，不需要外部扩展。
 pub enum AnyRenderResource {
     OwnedBuffer(Buffer),
@@ -92,8 +106,25 @@ impl Default for VirtualResource {
     }
 }
 
-pub struct ResourceNodeHandle<R: RenderResource> {
+//记录用于导入frame_graph的信息
+pub(crate) enum ExportableGraphResource {
+    Image(ResourceNodeHandle<Image>),
+    Buffer(ResourceNodeHandle<Buffer>),
+}
+
+#[derive(Debug)]
+pub struct ExportedResourceNodeHandle<R: RenderResource> {
+    pub(crate) raw: RawResourceNodeHandle,
+    pub(crate) marker: PhantomData<R>,
+}
+
+#[derive(Debug)]
+pub struct RawResourceNodeHandle {
     pub index: u32,
+}
+
+pub struct ResourceNodeHandle<R: RenderResource> {
+    pub raw: RawResourceNodeHandle,
     pub descriptor: <R as RenderResource>::Descriptor,
     pub marker: PhantomData<R>,
 }
@@ -119,6 +150,10 @@ impl ResourceNode {
     pub fn created(info: GraphResourceCreateInfo) -> Self {
         Self::new(GraphResourceInfo::Created(info))
     }
+
+    pub fn imported(info: GraphResourceImportInfo) -> Self {
+        Self::new(GraphResourceInfo::Imported(info))
+    }
 }
 
 #[derive(Clone)]
@@ -135,7 +170,10 @@ pub struct GraphResourceCreateInfo {
 
 #[derive(Clone)]
 
-pub struct GraphResourceImportInfo {}
+pub enum GraphResourceImportInfo {
+    Image { resource: Arc<Image> },
+    Buffer { resource: Arc<Buffer> },
+}
 
 ///渲染资源
 /// Descriptor,渲染资源对应的描述

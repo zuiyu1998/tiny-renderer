@@ -1,3 +1,4 @@
+mod blackboard;
 mod graph;
 mod pass;
 mod resource;

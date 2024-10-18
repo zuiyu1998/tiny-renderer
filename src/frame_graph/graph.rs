@@ -1,19 +1,14 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, mem::take, sync::Arc};
 
 use super::{
+    blackboard::Blackboard,
     pass::PassNode,
     resource::{
-        GraphResourceCreateInfo, RenderResource, RenderResourceDescriptor, ResourceNode,
-        ResourceNodeHandle, VirtualResource,
+        GraphResourceCreateInfo, ImportExportToFrameGraph, RenderResource,
+        RenderResourceDescriptor, ResourceNode, ResourceNodeHandle, VirtualResource,
     },
+    RawResourceNodeHandle,
 };
-
-///FrameGraph是一个有向无环图，用于渲染数据的整合，cocos的rust版本
-pub struct FrameGraph {
-    pass_nodes: Vec<PassNode>,
-    resource_nodes: Vec<ResourceNode>,
-    virtual_resources: Vec<VirtualResource>,
-}
 
 pub trait TypeEquals {
     type Other;
@@ -27,7 +22,23 @@ impl<T: Sized> TypeEquals for T {
     }
 }
 
+///FrameGraph是一个有向无环图，用于渲染数据的整合，cocos的rust版本
+#[derive(Default)]
+pub struct FrameGraph {
+    pub pass_nodes: Vec<PassNode>,
+    pub resource_nodes: Vec<ResourceNode>,
+    pub virtual_resources: Vec<VirtualResource>,
+    pub blackbloard: Blackboard,
+}
+
 impl FrameGraph {
+    pub fn import<Res: ImportExportToFrameGraph>(
+        &mut self,
+        resource: Arc<Res>,
+    ) -> ResourceNodeHandle<Res> {
+        ImportExportToFrameGraph::import(resource, self)
+    }
+
     ///根据描述创建资源节点
     pub fn create<D: RenderResourceDescriptor>(
         &mut self,
@@ -38,19 +49,24 @@ impl FrameGraph {
             Other = <<D as RenderResourceDescriptor>::Resource as RenderResource>::Descriptor,
         >,
     {
-        let index = self.create_raw_resource_node(GraphResourceCreateInfo {
+        let raw = self.create_raw_resource_node(GraphResourceCreateInfo {
             desciptor: descriptor.clone().into(),
         });
 
         ResourceNodeHandle {
-            index,
+            raw,
             descriptor: TypeEquals::same(descriptor),
             marker: PhantomData,
         }
     }
 
-    pub fn create_raw_resource_node(&mut self, info: GraphResourceCreateInfo) -> u32 {
+    pub fn create_raw_resource_node(
+        &mut self,
+        info: GraphResourceCreateInfo,
+    ) -> RawResourceNodeHandle {
         let index = self.resource_nodes.len() as u32;
+
+        let raw = RawResourceNodeHandle { index };
 
         let virtual_resource = VirtualResource {
             id: index,
@@ -61,7 +77,7 @@ impl FrameGraph {
 
         self.resource_nodes.push(ResourceNode::created(info));
 
-        index
+        raw
     }
 }
 
@@ -78,7 +94,7 @@ impl FrameGraph {
         self.compute_resource_lifetime();
     }
 
-    pub fn compute_resource_lifetime(&mut self) {
+    fn compute_resource_lifetime(&mut self) {
         //更新资源的使用范围
         for (index, pass_node) in self.pass_nodes.iter().enumerate() {
             for read_index in pass_node.reads.iter() {
@@ -117,7 +133,7 @@ impl FrameGraph {
     }
 
     //清除掉不需要使用的资源和pass
-    pub fn cull(&mut self) {
+    fn cull(&mut self) {
         //初始化pass_node的引用，和资源的reader_count数目
         for pass_node in self.pass_nodes.iter_mut() {
             pass_node.ref_count = pass_node.writes.len() as u32;
@@ -166,14 +182,24 @@ impl FrameGraph {
         }
     }
 
-    pub fn sort(&mut self) {
+    fn sort(&mut self) {
         self.pass_nodes.sort();
     }
 
     ///execute阶段
-    pub fn execute(self) {
-        for pass_nodes in self.pass_nodes.into_iter() {
-            todo!()
+    pub fn execute(&mut self) {
+        let pass_nodes = take(&mut self.pass_nodes);
+
+        for pass_node in pass_nodes.into_iter() {
+            println!("{}", pass_node.name);
         }
+
+        self.clear();
+    }
+
+    fn clear(&mut self) {
+        self.pass_nodes.clear();
+        self.resource_nodes.clear();
+        self.resource_nodes.clear();
     }
 }

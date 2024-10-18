@@ -1,9 +1,51 @@
+use std::{marker::PhantomData, sync::Arc};
+
 use super::{
-    AnyRenderResource, AnyRenderResourceDescriptor, AnyRenderResourceRef, RenderResource,
-    RenderResourceDescriptor,
+    AnyRenderResource, AnyRenderResourceDescriptor, AnyRenderResourceRef,
+    ExportedResourceNodeHandle, GraphResourceImportInfo, ImportExportToFrameGraph,
+    RawResourceNodeHandle, RenderResource, RenderResourceDescriptor, ResourceNode,
+    ResourceNodeHandle, VirtualResource,
 };
 
-use crate::renderer::resource::{Image, ImageDescriptor};
+use crate::{
+    frame_graph::FrameGraph,
+    renderer::resource::{Image, ImageDescriptor},
+};
+
+impl ImportExportToFrameGraph for Image {
+    fn import(self: Arc<Self>, fg: &mut FrameGraph) -> ResourceNodeHandle<Self> {
+        let raw = RawResourceNodeHandle {
+            index: fg.resource_nodes.len() as u32,
+        };
+
+        let res = VirtualResource {
+            id: fg.resource_nodes.len() as u32,
+            imported: true,
+            ..Default::default()
+        };
+
+        let descriptor = self.descriptor.clone();
+
+        fg.virtual_resources.push(res);
+        fg.resource_nodes
+            .push(ResourceNode::imported(GraphResourceImportInfo::Image {
+                resource: self,
+            }));
+
+        ResourceNodeHandle {
+            raw,
+            descriptor,
+            marker: PhantomData,
+        }
+    }
+
+    fn export(
+        resource: ResourceNodeHandle<Self>,
+        fg: &mut FrameGraph,
+    ) -> ExportedResourceNodeHandle<Self> {
+        todo!()
+    }
+}
 
 impl RenderResource for Image {
     type Descriptor = ImageDescriptor;

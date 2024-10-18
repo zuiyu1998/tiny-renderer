@@ -13,18 +13,16 @@ pub enum GraphsContext {
 
 pub struct InitializedGraphsContext {
     pub primary_window: Window,
-    pub render_backend: RenderBackend,
     pub renderer: Renderer,
 }
 
 impl InitializedGraphsContext {
     pub fn new(primary_window: Window) -> Self {
         let render_backend = RenderBackend::create_render_backend(&primary_window);
-        let renderer = Renderer::new(&render_backend);
+        let renderer = Renderer::new(render_backend);
 
         Self {
             primary_window,
-            render_backend,
             renderer,
         }
     }
