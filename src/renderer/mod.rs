@@ -5,6 +5,14 @@ use crate::render_backend::RenderBackend;
 
 pub struct WorldRenderer {}
 
+impl WorldRenderer {
+    pub fn prepare(&self, frame_graph: &mut TemporalFrameGraph) {
+        let builder = frame_graph.add_pass_node("world renderer", None);
+
+        // let d = builder.put_buffer("world renderer vetex", descriptor);
+    }
+}
+
 pub struct Renderer {
     backend: RenderBackend,
     world_renderer: WorldRenderer,

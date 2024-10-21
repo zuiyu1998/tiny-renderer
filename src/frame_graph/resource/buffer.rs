@@ -2,18 +2,17 @@ use std::{marker::PhantomData, sync::Arc};
 
 use crate::{
     frame_graph::FrameGraph,
-    render_backend::RenderDevice,
+    render_backend::{RenderBuffer, RenderDevice},
     renderer::resource::{Buffer, BufferDescriptor},
 };
 
 use super::{
-    AnyRenderResource, AnyRenderResourceDescriptor, AnyRenderResourceRef,
-    ExportedResourceNodeHandle, GraphResourceImportInfo, ImportExportToFrameGraph,
-    RawResourceNodeHandle, RenderResource, RenderResourceDescriptor, ResourceNode,
-    ResourceNodeHandle, VirtualResource,
+    AnyRenderResource, AnyRenderResourceDescriptor, AnyRenderResourceRef, GraphResourceImportInfo,
+    ImportToFrameGraph, RawResourceNodeHandle, RenderResource, RenderResourceDescriptor,
+    ResourceNode, ResourceNodeHandle, VirtualResource,
 };
 
-impl ImportExportToFrameGraph for Buffer {
+impl ImportToFrameGraph for Buffer {
     fn import(self: Arc<Self>, fg: &mut FrameGraph) -> ResourceNodeHandle<Self> {
         let raw = RawResourceNodeHandle {
             index: fg.resource_nodes.len() as u32,
@@ -39,13 +38,6 @@ impl ImportExportToFrameGraph for Buffer {
             marker: PhantomData,
         }
     }
-
-    fn export(
-        resource: ResourceNodeHandle<Self>,
-        fg: &mut FrameGraph,
-    ) -> ExportedResourceNodeHandle<Self> {
-        todo!()
-    }
 }
 
 impl RenderResource for Buffer {
@@ -68,7 +60,13 @@ impl From<BufferDescriptor> for AnyRenderResourceDescriptor {
 impl RenderResourceDescriptor for BufferDescriptor {
     type Resource = Buffer;
 
-    fn create_resource(&self, _device: &RenderDevice) -> Self::Resource {
-        todo!()
+    fn create_resource(&self, device: &RenderDevice) -> Self::Resource {
+        let buffer = device
+            .into_inner()
+            .create_buffer(&self.get_wgpu_descriptor());
+
+        let render_buffer = RenderBuffer::new(buffer);
+
+        Buffer::new(render_buffer, self.clone())
     }
 }

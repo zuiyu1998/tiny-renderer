@@ -9,7 +9,10 @@ use crate::{
     renderer::resource::{Buffer, BufferDescriptor, Image, ImageDescriptor},
 };
 
-use super::{FrameGraph, RenderResource, RenderResourceDescriptor, ResourceNodeHandle, TypeEquals};
+use super::{
+    pass_builder::PassBuilder, FrameGraph, RenderResource, RenderResourceDescriptor,
+    ResourceNodeHandle, TypeEquals,
+};
 
 pub struct TemporalFrameGraph {
     pub state: TemporalFrameGraphState,
@@ -24,6 +27,14 @@ impl TemporalFrameGraph {
             frame_graph: Default::default(),
             render_backend,
         }
+    }
+
+    pub fn add_pass_node<'a>(
+        &'a mut self,
+        name: &str,
+        insert_point: Option<u32>,
+    ) -> PassBuilder<'a> {
+        PassBuilder::new(self, name, insert_point)
     }
 
     pub fn compile(&mut self) {

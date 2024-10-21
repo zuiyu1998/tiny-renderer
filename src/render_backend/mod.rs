@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 use std::sync::Arc;
 use tiny_renderer_macros::{Deref, DerefMut};
-use wgpu::{Adapter, Device, Instance, Queue, RequestAdapterOptions};
+use wgpu::{Adapter, Buffer as WgpuBuffer, Device, Instance, Queue, RequestAdapterOptions};
 
 pub struct WgpuWrapper<T>(T);
 
@@ -21,6 +21,14 @@ pub struct RenderBackend {
     pub queue: RenderQueue,
     pub instance: RenderInstance,
     pub adapter: RenderAdapter,
+}
+
+pub struct RenderBuffer(WgpuWrapper<WgpuBuffer>);
+
+impl RenderBuffer {
+    pub fn new(buffer: WgpuBuffer) -> Self {
+        RenderBuffer(WgpuWrapper(buffer))
+    }
 }
 
 #[derive(Deref, DerefMut, Clone)]

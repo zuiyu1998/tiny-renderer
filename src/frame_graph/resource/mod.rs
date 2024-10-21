@@ -59,16 +59,11 @@ impl GpuViewType for GpuUav {
     const IS_WRITABLE: bool = true;
 }
 
-pub trait ImportExportToFrameGraph
+pub trait ImportToFrameGraph
 where
     Self: RenderResource + Sized,
 {
     fn import(self: Arc<Self>, fg: &mut FrameGraph) -> ResourceNodeHandle<Self>;
-
-    fn export(
-        resource: ResourceNodeHandle<Self>,
-        fg: &mut FrameGraph,
-    ) -> ExportedResourceNodeHandle<Self>;
 }
 
 ///渲染资源的抽象实例，因为渲染资源通常是固定的，不需要外部扩展。
@@ -178,12 +173,6 @@ impl Default for VirtualResource {
             last_pass: None,
         }
     }
-}
-
-#[derive(Debug)]
-pub struct ExportedResourceNodeHandle<R: RenderResource> {
-    pub(crate) raw: RawResourceNodeHandle,
-    pub(crate) marker: PhantomData<R>,
 }
 
 #[derive(Debug, Clone, Copy)]
