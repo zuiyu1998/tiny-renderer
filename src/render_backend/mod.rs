@@ -15,6 +15,7 @@ impl<T> WgpuWrapper<T> {
     }
 }
 
+#[derive(Clone)]
 pub struct RenderBackend {
     pub device: RenderDevice,
     pub queue: RenderQueue,
@@ -22,16 +23,16 @@ pub struct RenderBackend {
     pub adapter: RenderAdapter,
 }
 
-#[derive(Deref, DerefMut)]
+#[derive(Deref, DerefMut, Clone)]
 pub struct RenderDevice(Arc<WgpuWrapper<Device>>);
 
-#[derive(Deref, DerefMut)]
+#[derive(Deref, DerefMut, Clone)]
 pub struct RenderQueue(Arc<WgpuWrapper<Queue>>);
 
-#[derive(Deref, DerefMut)]
+#[derive(Deref, DerefMut, Clone)]
 pub struct RenderInstance(Arc<WgpuWrapper<Instance>>);
 
-#[derive(Deref, DerefMut)]
+#[derive(Deref, DerefMut, Clone)]
 pub struct RenderAdapter(Arc<WgpuWrapper<Adapter>>);
 
 impl RenderBackend {

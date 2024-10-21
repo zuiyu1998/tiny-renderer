@@ -111,12 +111,6 @@ impl Default for VirtualResource {
     }
 }
 
-//记录用于导入frame_graph的信息
-pub(crate) enum ExportableGraphResource {
-    Image(ResourceNodeHandle<Image>),
-    Buffer(ResourceNodeHandle<Buffer>),
-}
-
 #[derive(Debug)]
 pub struct ExportedResourceNodeHandle<R: RenderResource> {
     pub(crate) raw: RawResourceNodeHandle,

@@ -13,10 +13,12 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(backend: RenderBackend) -> Self {
+        let frame_graph = TemporalFrameGraph::new(backend.clone());
+
         Self {
             world_renderer: WorldRenderer {},
             backend,
-            frame_graph: Default::default(),
+            frame_graph,
         }
     }
 

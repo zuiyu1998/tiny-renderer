@@ -5,22 +5,27 @@ use std::{
 
 use crate::{
     error::{Kind, Result},
-    render_backend::RenderDevice,
-    renderer::resource::{Buffer, Image, ImageDescriptor},
+    render_backend::RenderBackend,
+    renderer::resource::{Buffer, BufferDescriptor, Image, ImageDescriptor},
 };
 
-use super::{
-    ExportableGraphResource, FrameGraph, RenderResource, RenderResourceDescriptor,
-    ResourceNodeHandle, TypeEquals,
-};
+use super::{FrameGraph, RenderResource, RenderResourceDescriptor, ResourceNodeHandle, TypeEquals};
 
-#[derive(Default)]
 pub struct TemporalFrameGraph {
     pub state: TemporalFrameGraphState,
     pub frame_graph: FrameGraph,
+    pub render_backend: RenderBackend,
 }
 
 impl TemporalFrameGraph {
+    pub fn new(render_backend: RenderBackend) -> Self {
+        TemporalFrameGraph {
+            state: Default::default(),
+            frame_graph: Default::default(),
+            render_backend,
+        }
+    }
+
     pub fn compile(&mut self) {
         self.frame_graph.compile();
     }
@@ -57,18 +62,8 @@ pub(crate) enum TemporalResource {
     Buffer(Arc<Buffer>),
 }
 
-pub(crate) enum TemporalResourceState {
-    Inert {
-        resource: TemporalResource,
-    },
-    Imported {
-        resource: TemporalResource,
-        handle: ExportableGraphResource,
-    },
-    Exported {
-        resource: TemporalResource,
-        // handle: ExportedResource,
-    },
+pub(crate) struct TemporalResourceState {
+    resource: TemporalResource,
 }
 
 pub trait PutResourceNode<D: RenderResourceDescriptor> {
@@ -76,7 +71,6 @@ pub trait PutResourceNode<D: RenderResourceDescriptor> {
         &mut self,
         key: impl Into<TemporalResourceKey>,
         descriptor: D,
-        device: &RenderDevice,
     ) -> Result<ResourceNodeHandle<<D as RenderResourceDescriptor>::Resource>>
     where
         D: TypeEquals<
@@ -89,7 +83,6 @@ impl PutResourceNode<ImageDescriptor> for TemporalFrameGraph {
         &mut self,
         key: impl Into<TemporalResourceKey>,
         descriptor: ImageDescriptor,
-        device: &RenderDevice,
     ) -> Result<ResourceNodeHandle<<ImageDescriptor as RenderResourceDescriptor>::Resource>>
     where
         ImageDescriptor: TypeEquals<
@@ -98,43 +91,62 @@ impl PutResourceNode<ImageDescriptor> for TemporalFrameGraph {
         let key = key.into();
 
         match self.state.resources.entry(key.clone()) {
-            hash_map::Entry::Occupied(mut entry) => {
-                let state = entry.get_mut();
+            hash_map::Entry::Occupied(entry) => {
+                let state = entry.get();
+                let resource = state.resource.clone();
 
-                match state {
-                    TemporalResourceState::Inert { resource } => {
-                        let resource = resource.clone();
+                match &resource {
+                    TemporalResource::Image(image) => {
+                        let handle = self.frame_graph.import(image.clone());
 
-                        match &resource {
-                            TemporalResource::Image(image) => {
-                                let handle = self.frame_graph.import(image.clone());
-
-                                *state = TemporalResourceState::Imported {
-                                    resource,
-                                    handle: ExportableGraphResource::Image(
-                                        handle.clone_unchecked(),
-                                    ),
-                                };
-
-                                Ok(handle)
-                            }
-                            TemporalResource::Buffer(_) => Err(Kind::ResourceTypeNoMatch.into()),
-                        }
+                        Ok(handle)
                     }
-                    TemporalResourceState::Imported { .. } => {
-                        Err(Kind::ResourceAlreadyTaken.into())
-                    }
-                    TemporalResourceState::Exported { .. } => {
-                        unreachable!()
-                    }
+                    TemporalResource::Buffer(_) => Err(Kind::ResourceTypeNoMatch.into()),
                 }
             }
             hash_map::Entry::Vacant(entry) => {
-                let resource = Arc::new(descriptor.create_resource(&device));
+                let resource = Arc::new(descriptor.create_resource(&self.render_backend.device));
                 let handle = self.frame_graph.import(resource.clone());
-                entry.insert(TemporalResourceState::Imported {
+                entry.insert(TemporalResourceState {
                     resource: TemporalResource::Image(resource),
-                    handle: ExportableGraphResource::Image(handle.clone_unchecked()),
+                });
+                Ok(handle)
+            }
+        }
+    }
+}
+
+impl PutResourceNode<BufferDescriptor> for TemporalFrameGraph {
+    fn put(
+        &mut self,
+        key: impl Into<TemporalResourceKey>,
+        descriptor: BufferDescriptor,
+    ) -> Result<ResourceNodeHandle<<BufferDescriptor as RenderResourceDescriptor>::Resource>>
+    where
+        ImageDescriptor: TypeEquals<
+            Other = <<ImageDescriptor as RenderResourceDescriptor>::Resource as RenderResource>::Descriptor,
+    >{
+        let key = key.into();
+
+        match self.state.resources.entry(key.clone()) {
+            hash_map::Entry::Occupied(entry) => {
+                let state = entry.get();
+                let resource = state.resource.clone();
+
+                match &resource {
+                    TemporalResource::Buffer(image) => {
+                        let handle = self.frame_graph.import(image.clone());
+
+                        Ok(handle)
+                    }
+                    TemporalResource::Image(_) => Err(Kind::ResourceTypeNoMatch.into()),
+                }
+            }
+            hash_map::Entry::Vacant(entry) => {
+                let resource = Arc::new(descriptor.create_resource(&self.render_backend.device));
+                let handle = self.frame_graph.import(resource.clone());
+                entry.insert(TemporalResourceState {
+                    resource: TemporalResource::Buffer(resource),
                 });
                 Ok(handle)
             }
