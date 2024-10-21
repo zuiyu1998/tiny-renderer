@@ -34,10 +34,6 @@ pub struct RenderInstance(Arc<WgpuWrapper<Instance>>);
 #[derive(Deref, DerefMut)]
 pub struct RenderAdapter(Arc<WgpuWrapper<Adapter>>);
 
-struct FutureRendererResources(
-    Arc<Mutex<Option<(RenderDevice, RenderQueue, RenderAdapter, RenderInstance)>>>,
-);
-
 impl RenderBackend {
     pub fn create_render_backend() -> Self {
         let future_renderer_resources_wrapper = Arc::new(Mutex::new(None));

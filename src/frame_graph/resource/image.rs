@@ -9,6 +9,7 @@ use super::{
 
 use crate::{
     frame_graph::FrameGraph,
+    render_backend::RenderDevice,
     renderer::resource::{Image, ImageDescriptor},
 };
 
@@ -65,4 +66,8 @@ impl From<ImageDescriptor> for AnyRenderResourceDescriptor {
 }
 impl RenderResourceDescriptor for ImageDescriptor {
     type Resource = Image;
+
+    fn create_resource(&self, device: &RenderDevice) -> Self::Resource {
+        todo!()
+    }
 }

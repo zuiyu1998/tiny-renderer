@@ -1,3 +1,4 @@
+pub mod error;
 pub mod frame_graph;
 pub mod render_backend;
 pub mod renderer;

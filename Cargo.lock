@@ -1532,6 +1532,7 @@ version = "0.1.0"
 dependencies = [
  "futures-lite",
  "parking_lot",
+ "thiserror",
  "tiny-renderer-macros",
  "wgpu",
  "winit",

@@ -3,7 +3,10 @@ mod image;
 
 use std::{fmt::Debug, marker::PhantomData, sync::Arc};
 
-use crate::renderer::resource::{Buffer, BufferDescriptor, Image, ImageDescriptor};
+use crate::{
+    render_backend::RenderDevice,
+    renderer::resource::{Buffer, BufferDescriptor, Image, ImageDescriptor},
+};
 
 use super::FrameGraph;
 
@@ -54,6 +57,8 @@ pub enum AnyRenderResourceDescriptor {
 ///描述渲染资源如何被创建
 pub trait RenderResourceDescriptor: Clone + Debug + Into<AnyRenderResourceDescriptor> {
     type Resource: RenderResource;
+
+    fn create_resource(&self, device: &RenderDevice) -> Self::Resource;
 }
 
 ///资源节点的Handle
@@ -118,7 +123,7 @@ pub struct ExportedResourceNodeHandle<R: RenderResource> {
     pub(crate) marker: PhantomData<R>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct RawResourceNodeHandle {
     pub index: u32,
 }
@@ -127,6 +132,16 @@ pub struct ResourceNodeHandle<R: RenderResource> {
     pub raw: RawResourceNodeHandle,
     pub descriptor: <R as RenderResource>::Descriptor,
     pub marker: PhantomData<R>,
+}
+
+impl<R: RenderResource> ResourceNodeHandle<R> {
+    pub(crate) fn clone_unchecked(&self) -> Self {
+        Self {
+            raw: self.raw,
+            descriptor: self.descriptor.clone(),
+            marker: PhantomData,
+        }
+    }
 }
 
 ///资源节点

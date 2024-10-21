@@ -1,7 +1,6 @@
 use std::{marker::PhantomData, mem::take, sync::Arc};
 
 use super::{
-    blackboard::Blackboard,
     pass::PassNode,
     resource::{
         GraphResourceCreateInfo, ImportExportToFrameGraph, RenderResource,
@@ -28,7 +27,6 @@ pub struct FrameGraph {
     pub pass_nodes: Vec<PassNode>,
     pub resource_nodes: Vec<ResourceNode>,
     pub virtual_resources: Vec<VirtualResource>,
-    pub blackbloard: Blackboard,
 }
 
 impl FrameGraph {

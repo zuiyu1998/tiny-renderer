@@ -1,6 +1,6 @@
 pub mod resource;
 
-use crate::frame_graph::FrameGraph;
+use crate::frame_graph::TemporalFrameGraph;
 use crate::render_backend::RenderBackend;
 
 pub struct WorldRenderer {}
@@ -8,7 +8,7 @@ pub struct WorldRenderer {}
 pub struct Renderer {
     backend: RenderBackend,
     world_renderer: WorldRenderer,
-    fg: FrameGraph,
+    frame_graph: TemporalFrameGraph,
 }
 
 impl Renderer {
@@ -16,7 +16,7 @@ impl Renderer {
         Self {
             world_renderer: WorldRenderer {},
             backend,
-            fg: FrameGraph::default(),
+            frame_graph: Default::default(),
         }
     }
 
@@ -25,8 +25,8 @@ impl Renderer {
     pub fn render(&mut self) {
         self.prepare();
 
-        self.fg.compile();
+        self.frame_graph.compile();
 
-        self.fg.execute();
+        self.frame_graph.execute();
     }
 }

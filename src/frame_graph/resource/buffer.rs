@@ -2,6 +2,7 @@ use std::{marker::PhantomData, sync::Arc};
 
 use crate::{
     frame_graph::FrameGraph,
+    render_backend::RenderDevice,
     renderer::resource::{Buffer, BufferDescriptor},
 };
 
@@ -66,4 +67,8 @@ impl From<BufferDescriptor> for AnyRenderResourceDescriptor {
 
 impl RenderResourceDescriptor for BufferDescriptor {
     type Resource = Buffer;
+
+    fn create_resource(&self, _device: &RenderDevice) -> Self::Resource {
+        todo!()
+    }
 }
