@@ -1,6 +1,7 @@
 pub mod frame_graph;
 pub mod render_backend;
 pub mod renderer;
+pub mod windows;
 
 use render_backend::RenderBackend;
 use renderer::Renderer;
@@ -18,7 +19,7 @@ pub struct InitializedGraphsContext {
 
 impl InitializedGraphsContext {
     pub fn new(primary_window: Window) -> Self {
-        let render_backend = RenderBackend::create_render_backend(&primary_window);
+        let render_backend = RenderBackend::create_render_backend();
         let renderer = Renderer::new(render_backend);
 
         Self {

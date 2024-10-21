@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 use std::sync::Arc;
+use tiny_renderer_macros::{Deref, DerefMut};
 use wgpu::{Adapter, Device, Instance, Queue, RequestAdapterOptions};
-use winit::window::Window;
 
 pub struct WgpuWrapper<T>(T);
 
@@ -16,15 +16,22 @@ impl<T> WgpuWrapper<T> {
 }
 
 pub struct RenderBackend {
-    device: RenderDevice,
-    queue: RenderQueue,
-    instance: RenderInstance,
-    adapter: RenderAdapter,
+    pub device: RenderDevice,
+    pub queue: RenderQueue,
+    pub instance: RenderInstance,
+    pub adapter: RenderAdapter,
 }
 
+#[derive(Deref, DerefMut)]
 pub struct RenderDevice(Arc<WgpuWrapper<Device>>);
+
+#[derive(Deref, DerefMut)]
 pub struct RenderQueue(Arc<WgpuWrapper<Queue>>);
+
+#[derive(Deref, DerefMut)]
 pub struct RenderInstance(Arc<WgpuWrapper<Instance>>);
+
+#[derive(Deref, DerefMut)]
 pub struct RenderAdapter(Arc<WgpuWrapper<Adapter>>);
 
 struct FutureRendererResources(
@@ -32,7 +39,7 @@ struct FutureRendererResources(
 );
 
 impl RenderBackend {
-    pub fn create_render_backend(primary_window: &Window) -> Self {
+    pub fn create_render_backend() -> Self {
         let future_renderer_resources_wrapper = Arc::new(Mutex::new(None));
 
         let future_renderer_resources_wrapper_clone = future_renderer_resources_wrapper.clone();
