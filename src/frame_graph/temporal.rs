@@ -13,7 +13,7 @@ use super::{FrameGraph, RenderResource, RenderResourceDescriptor, ResourceNodeHa
 
 pub struct TemporalFrameGraph {
     pub state: TemporalFrameGraphState,
-    pub frame_graph: FrameGraph,
+    pub(crate) frame_graph: FrameGraph,
     pub render_backend: RenderBackend,
 }
 

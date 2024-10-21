@@ -1,17 +1,34 @@
+use super::{resource_registry::RenderContext, VirtualResourceHandle};
+use crate::error::Result;
+
+type DynRenderFn = dyn FnOnce(&mut RenderContext) -> Result<()>;
+
+pub struct PassResourceRef {
+    pub(crate) handle: VirtualResourceHandle,
+}
+
+impl PassResourceRef {
+    pub fn id(&self) -> u32 {
+        self.handle.id
+    }
+}
+
 ///pass 节点
 pub struct PassNode {
     pub id: u32,
     pub insert_point: u32,
     pub name: String,
     //写入资源索引
-    pub writes: Vec<u32>,
+    pub writes: Vec<PassResourceRef>,
     //读取资源索引
-    pub reads: Vec<u32>,
+    pub reads: Vec<PassResourceRef>,
 
     pub ref_count: u32,
 
     pub resource_request_array: Vec<u32>,
     pub resource_release_array: Vec<u32>,
+
+    pub render_fn: Option<Box<DynRenderFn>>,
 }
 
 impl PassNode {
@@ -25,6 +42,7 @@ impl PassNode {
             ref_count: 0,
             resource_release_array: vec![],
             resource_request_array: vec![],
+            render_fn: None,
         }
     }
 }

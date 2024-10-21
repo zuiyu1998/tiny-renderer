@@ -10,6 +10,55 @@ use crate::{
 
 use super::FrameGraph;
 
+#[derive(Debug)]
+pub struct Ref<ResType: RenderResource, ViewType: GpuViewType> {
+    pub(crate) handle: VirtualResourceHandle,
+    pub(crate) desc: <ResType as RenderResource>::Descriptor,
+    pub(crate) marker: PhantomData<(ResType, ViewType)>,
+}
+
+impl<ResType: RenderResource, ViewType: GpuViewType> Ref<ResType, ViewType> {
+    pub fn desc(&self) -> &<ResType as RenderResource>::Descriptor {
+        &self.desc
+    }
+}
+
+impl<ResType: RenderResource, ViewType: GpuViewType> Clone for Ref<ResType, ViewType>
+where
+    <ResType as RenderResource>::Descriptor: Clone,
+    ViewType: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            handle: self.handle,
+            desc: self.desc.clone(),
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<ResType: RenderResource, ViewType: GpuViewType> Copy for Ref<ResType, ViewType>
+where
+    <ResType as RenderResource>::Descriptor: Copy,
+    ViewType: Copy,
+{
+}
+
+pub trait GpuViewType {
+    const IS_WRITABLE: bool;
+}
+
+#[derive(Clone, Copy)]
+pub struct GpuSrv;
+pub struct GpuUav;
+
+impl GpuViewType for GpuSrv {
+    const IS_WRITABLE: bool = false;
+}
+impl GpuViewType for GpuUav {
+    const IS_WRITABLE: bool = true;
+}
+
 pub trait ImportExportToFrameGraph
 where
     Self: RenderResource + Sized,
@@ -52,6 +101,7 @@ pub enum AnyRenderResourceRef<'a> {
 pub enum AnyRenderResourceDescriptor {
     Buffer(BufferDescriptor),
     Image(ImageDescriptor),
+    SwapchainImage,
 }
 
 ///描述渲染资源如何被创建
@@ -59,6 +109,12 @@ pub trait RenderResourceDescriptor: Clone + Debug + Into<AnyRenderResourceDescri
     type Resource: RenderResource;
 
     fn create_resource(&self, device: &RenderDevice) -> Self::Resource;
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct VirtualResourceHandle {
+    pub id: u32,
+    pub version: u32,
 }
 
 ///资源节点的Handle
@@ -80,6 +136,15 @@ pub struct VirtualResource {
 }
 
 impl VirtualResource {
+    pub fn get_handle(&self) -> VirtualResourceHandle {
+        VirtualResourceHandle {
+            id: self.id,
+            version: self.version,
+        }
+    }
+}
+
+impl VirtualResource {
     pub fn update_life_time(&mut self, pass_index: usize) {
         if self.first_pass.is_none() {
             self.first_pass = Some(pass_index);
@@ -90,6 +155,10 @@ impl VirtualResource {
                 .map(|last_access| last_access.max(pass_index))
                 .unwrap_or(pass_index),
         );
+    }
+
+    pub fn new_version(&mut self) {
+        self.version += 1;
     }
 }
 

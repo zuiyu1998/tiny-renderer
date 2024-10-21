@@ -30,10 +30,14 @@ pub struct FrameGraph {
 }
 
 impl FrameGraph {
-    pub fn import<Res: ImportExportToFrameGraph>(
+    pub fn add_pass_node(&mut self, pass_node: PassNode) {
+        self.pass_nodes.push(pass_node);
+    }
+
+    pub fn import<R: ImportExportToFrameGraph>(
         &mut self,
-        resource: Arc<Res>,
-    ) -> ResourceNodeHandle<Res> {
+        resource: Arc<R>,
+    ) -> ResourceNodeHandle<R> {
         ImportExportToFrameGraph::import(resource, self)
     }
 
@@ -95,14 +99,14 @@ impl FrameGraph {
     fn compute_resource_lifetime(&mut self) {
         //更新资源的使用范围
         for (index, pass_node) in self.pass_nodes.iter().enumerate() {
-            for read_index in pass_node.reads.iter() {
-                let read_index = *read_index as usize;
+            for read_ref in pass_node.reads.iter() {
+                let read_index = read_ref.id() as usize;
 
                 self.virtual_resources[read_index].update_life_time(index);
             }
 
-            for write_index in pass_node.writes.iter() {
-                let write_index = *write_index as usize;
+            for write_ref in pass_node.writes.iter() {
+                let write_index = write_ref.id() as usize;
 
                 self.virtual_resources[write_index].update_life_time(index);
 
@@ -136,8 +140,8 @@ impl FrameGraph {
         for pass_node in self.pass_nodes.iter_mut() {
             pass_node.ref_count = pass_node.writes.len() as u32;
 
-            for index in pass_node.reads.iter() {
-                let index = *index as usize;
+            for read_ref in pass_node.reads.iter() {
+                let index = read_ref.id() as usize;
 
                 self.resource_nodes[index].reader_count += 1;
             }
@@ -161,8 +165,8 @@ impl FrameGraph {
             writer_pass_node.ref_count -= 1;
 
             if writer_pass_node.ref_count == 0 {
-                for resource_index in writer_pass_node.reads.iter() {
-                    let resource_index = *resource_index as usize;
+                for read_ref in writer_pass_node.reads.iter() {
+                    let resource_index = read_ref.id() as usize;
 
                     self.resource_nodes[resource_index].reader_count -= 1;
 
