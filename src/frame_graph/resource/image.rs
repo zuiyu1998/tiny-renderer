@@ -1,10 +1,9 @@
 use std::{marker::PhantomData, sync::Arc};
 
 use super::{
-    AnyRenderResource, AnyRenderResourceDescriptor, AnyRenderResourceRef,
-    ExportedResourceNodeHandle, GraphResourceImportInfo, ImportExportToFrameGraph,
-    RawResourceNodeHandle, RenderResource, RenderResourceDescriptor, ResourceNode,
-    ResourceNodeHandle, VirtualResource,
+    AnyRenderResource, AnyRenderResourceDescriptor, AnyRenderResourceRef, GraphResourceImportInfo,
+    ImportToFrameGraph, RawResourceNodeHandle, RenderResource, RenderResourceDescriptor,
+    ResourceNode, ResourceNodeHandle, VirtualResource,
 };
 
 use crate::{
@@ -13,7 +12,7 @@ use crate::{
     renderer::resource::{Image, ImageDescriptor},
 };
 
-impl ImportExportToFrameGraph for Image {
+impl ImportToFrameGraph for Image {
     fn import(self: Arc<Self>, fg: &mut FrameGraph) -> ResourceNodeHandle<Self> {
         let raw = RawResourceNodeHandle {
             index: fg.resource_nodes.len() as u32,
@@ -38,13 +37,6 @@ impl ImportExportToFrameGraph for Image {
             descriptor,
             marker: PhantomData,
         }
-    }
-
-    fn export(
-        resource: ResourceNodeHandle<Self>,
-        fg: &mut FrameGraph,
-    ) -> ExportedResourceNodeHandle<Self> {
-        todo!()
     }
 }
 

@@ -1,5 +1,7 @@
 pub mod resource;
 
+use resource::{BufferDescriptor, BufferUsages};
+
 use crate::frame_graph::TemporalFrameGraph;
 use crate::render_backend::RenderBackend;
 
@@ -7,9 +9,19 @@ pub struct WorldRenderer {}
 
 impl WorldRenderer {
     pub fn prepare(&self, frame_graph: &mut TemporalFrameGraph) {
-        let builder = frame_graph.add_pass_node("world renderer", None);
+        let mut builder = frame_graph.add_pass_node("world renderer", None);
 
-        // let d = builder.put_buffer("world renderer vetex", descriptor);
+        let vertex = builder
+            .put_buffer(
+                "world renderer vetex",
+                BufferDescriptor {
+                    label: "world renderer vetex".to_string(),
+                    size: 50,
+                    usage: BufferUsages::VERTEX,
+                    mapped_at_creation: true,
+                },
+            )
+            .unwrap();
     }
 }
 

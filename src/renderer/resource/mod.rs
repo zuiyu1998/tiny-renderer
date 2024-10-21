@@ -1,6 +1,7 @@
-use wgpu::{BufferDescriptor as WgpuBufferDescriptor, BufferUsages};
+use wgpu::BufferDescriptor as WgpuBufferDescriptor;
 
 use crate::render_backend::RenderBuffer;
+pub use wgpu::BufferUsages;
 
 pub struct Image {
     pub descriptor: ImageDescriptor,

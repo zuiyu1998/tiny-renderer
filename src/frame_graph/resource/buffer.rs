@@ -61,12 +61,7 @@ impl RenderResourceDescriptor for BufferDescriptor {
     type Resource = Buffer;
 
     fn create_resource(&self, device: &RenderDevice) -> Self::Resource {
-        let buffer = device
-            .into_inner()
-            .create_buffer(&self.get_wgpu_descriptor());
-
-        let render_buffer = RenderBuffer::new(buffer);
-
-        Buffer::new(render_buffer, self.clone())
+        let buffer = device.create_render_buffer(self);
+        Buffer::new(buffer, self.clone())
     }
 }

@@ -3,8 +3,8 @@ use std::{marker::PhantomData, mem::take, sync::Arc};
 use super::{
     pass::PassNode,
     resource::{
-        GraphResourceCreateInfo, ImportExportToFrameGraph, RenderResource,
-        RenderResourceDescriptor, ResourceNode, ResourceNodeHandle, VirtualResource,
+        GraphResourceCreateInfo, ImportToFrameGraph, RenderResource, RenderResourceDescriptor,
+        ResourceNode, ResourceNodeHandle, VirtualResource,
     },
     RawResourceNodeHandle,
 };
@@ -34,11 +34,8 @@ impl FrameGraph {
         self.pass_nodes.push(pass_node);
     }
 
-    pub fn import<R: ImportExportToFrameGraph>(
-        &mut self,
-        resource: Arc<R>,
-    ) -> ResourceNodeHandle<R> {
-        ImportExportToFrameGraph::import(resource, self)
+    pub fn import<R: ImportToFrameGraph>(&mut self, resource: Arc<R>) -> ResourceNodeHandle<R> {
+        ImportToFrameGraph::import(resource, self)
     }
 
     ///根据描述创建资源节点

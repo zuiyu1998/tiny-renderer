@@ -3,6 +3,9 @@ use std::sync::Arc;
 use tiny_renderer_macros::{Deref, DerefMut};
 use wgpu::{Adapter, Buffer as WgpuBuffer, Device, Instance, Queue, RequestAdapterOptions};
 
+use crate::renderer::resource::BufferDescriptor;
+
+#[derive(Deref, DerefMut)]
 pub struct WgpuWrapper<T>(T);
 
 impl<T> WgpuWrapper<T> {
@@ -33,6 +36,14 @@ impl RenderBuffer {
 
 #[derive(Deref, DerefMut, Clone)]
 pub struct RenderDevice(Arc<WgpuWrapper<Device>>);
+
+impl RenderDevice {
+    pub fn create_render_buffer(&self, descriptor: &BufferDescriptor) -> RenderBuffer {
+        let buffer = self.create_buffer(&descriptor.get_wgpu_descriptor());
+
+        RenderBuffer::new(buffer)
+    }
+}
 
 #[derive(Deref, DerefMut, Clone)]
 pub struct RenderQueue(Arc<WgpuWrapper<Queue>>);
