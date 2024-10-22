@@ -6,6 +6,7 @@ pub mod windows;
 
 use render_backend::RenderBackend;
 use renderer::Renderer;
+use windows::Windows;
 use winit::window::Window;
 
 pub enum GraphsContext {
@@ -14,29 +15,27 @@ pub enum GraphsContext {
 }
 
 pub struct InitializedGraphsContext {
-    pub primary_window: Window,
+    pub windows: Windows,
     pub renderer: Renderer,
 }
 
 impl InitializedGraphsContext {
     pub fn new(primary_window: Window) -> Self {
         let render_backend = RenderBackend::create_render_backend();
+        let windows = Windows::new(primary_window, &render_backend);
         let renderer = Renderer::new(render_backend);
 
-        Self {
-            primary_window,
-            renderer,
-        }
+        Self { windows, renderer }
     }
 
     pub fn update(&mut self) {
         println!("InitializedGraphsContext update");
 
-        self.renderer.render();
+        self.renderer.render(&mut self.windows);
     }
 
     pub fn redraw_requested(&mut self) {
-        self.primary_window.request_redraw();
+        self.windows.request_redraw();
     }
 }
 

@@ -6,7 +6,7 @@ use std::{
 use crate::{
     error::{Kind, Result},
     render_backend::RenderBackend,
-    renderer::resource::{Buffer, BufferDescriptor, Image, ImageDescriptor},
+    renderer::resource::{Buffer, BufferDescriptor, Image, ImageDescriptor, SwapchainImages},
 };
 
 use super::{
@@ -41,8 +41,9 @@ impl TemporalFrameGraph {
         self.frame_graph.compile();
     }
 
-    pub fn execute(&mut self) {
-        self.frame_graph.execute(&self.render_backend);
+    pub fn execute(&mut self, swapchain_images: SwapchainImages) {
+        self.frame_graph
+            .execute(&self.render_backend, swapchain_images);
     }
 }
 

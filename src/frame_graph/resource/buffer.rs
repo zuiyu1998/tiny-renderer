@@ -2,7 +2,7 @@ use std::{marker::PhantomData, sync::Arc};
 
 use crate::{
     frame_graph::FrameGraph,
-    render_backend::{RenderBuffer, RenderDevice},
+    render_backend::RenderDevice,
     renderer::resource::{Buffer, BufferDescriptor},
 };
 

@@ -1,7 +1,26 @@
-use wgpu::BufferDescriptor as WgpuBufferDescriptor;
+use std::collections::VecDeque;
+
+use wgpu::{BufferDescriptor as WgpuBufferDescriptor, SurfaceTexture};
 
 use crate::render_backend::RenderBuffer;
 pub use wgpu::BufferUsages;
+
+pub struct SwapchainImages {
+    pub images: VecDeque<SwapchainImage>,
+}
+
+pub struct SwapchainImage {
+    pub texture: SurfaceTexture,
+}
+
+impl SwapchainImage {
+    pub fn new(texture: SurfaceTexture) -> Self {
+        SwapchainImage { texture }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SwapchainImageDescriptor {}
 
 pub struct Image {
     pub descriptor: ImageDescriptor,

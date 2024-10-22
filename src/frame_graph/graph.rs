@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, mem::take, sync::Arc};
 
-use crate::render_backend::{RenderBackend, RenderDevice};
+use crate::{render_backend::RenderBackend, renderer::resource::SwapchainImages};
 
 use super::{
     pass::PassNode,
@@ -42,7 +42,7 @@ pub struct CompiledFrameGraph {
 }
 
 impl CompiledFrameGraph {
-    pub fn execute(self, backend: &RenderBackend) {
+    pub fn execute(self, backend: &RenderBackend, swapchain_images: SwapchainImages) {
         let CompiledFrameGraph {
             pass_nodes,
             registry_resources,
@@ -60,6 +60,8 @@ impl CompiledFrameGraph {
             encoder,
         };
 
+        render_context.initialize_swap_images(swapchain_images);
+
         //注入屏幕
 
         for mut pass_node in pass_nodes.into_iter() {
@@ -68,7 +70,9 @@ impl CompiledFrameGraph {
             //申请资源
 
             if let Some(render_fn) = pass_node.render_fn.take() {
-                render_fn(&mut render_context);
+                if let Err(e) = render_fn(&mut render_context) {
+                    println!("{}", e);
+                }
             }
 
             //释放资源
@@ -264,9 +268,9 @@ impl FrameGraph {
     }
 
     ///execute阶段
-    pub fn execute(&mut self, backend: &RenderBackend) {
+    pub fn execute(&mut self, backend: &RenderBackend, swapchain_images: SwapchainImages) {
         if let Some(frame_graph) = self.compiled_frame_fraph.take() {
-            frame_graph.execute(backend);
+            frame_graph.execute(backend, swapchain_images);
         }
     }
 }

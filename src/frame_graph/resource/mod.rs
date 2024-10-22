@@ -5,7 +5,9 @@ use std::{fmt::Debug, marker::PhantomData, sync::Arc};
 
 use crate::{
     render_backend::RenderDevice,
-    renderer::resource::{Buffer, BufferDescriptor, Image, ImageDescriptor},
+    renderer::resource::{
+        Buffer, BufferDescriptor, Image, ImageDescriptor, SwapchainImage, SwapchainImageDescriptor,
+    },
 };
 
 use super::FrameGraph;
@@ -73,6 +75,7 @@ pub enum AnyRenderResource {
     OwnedImage(Image),
     ImportedImage(Arc<Image>),
     Pending,
+    SwapchainImage(SwapchainImage),
 }
 
 impl AnyRenderResource {
@@ -87,6 +90,7 @@ impl AnyRenderResource {
             AnyRenderResource::Pending => {
                 unimplemented!()
             }
+            AnyRenderResource::SwapchainImage(image) => AnyRenderResourceRef::SwapchainImage(image),
         }
     }
 }
@@ -94,13 +98,14 @@ impl AnyRenderResource {
 pub enum AnyRenderResourceRef<'a> {
     Image(&'a Image),
     Buffer(&'a Buffer),
+    SwapchainImage(&'a SwapchainImage),
 }
 
 #[derive(Clone)]
 pub enum AnyRenderResourceDescriptor {
     Buffer(BufferDescriptor),
     Image(ImageDescriptor),
-    SwapchainImage,
+    SwapchainImage(SwapchainImageDescriptor),
 }
 
 impl AnyRenderResourceDescriptor {

@@ -9,7 +9,7 @@ use super::{
 use crate::{
     frame_graph::FrameGraph,
     render_backend::RenderDevice,
-    renderer::resource::{Image, ImageDescriptor},
+    renderer::resource::{Image, ImageDescriptor, SwapchainImage, SwapchainImageDescriptor},
 };
 
 impl ImportToFrameGraph for Image {
@@ -58,6 +58,30 @@ impl From<ImageDescriptor> for AnyRenderResourceDescriptor {
 }
 impl RenderResourceDescriptor for ImageDescriptor {
     type Resource = Image;
+
+    fn create_resource(&self, _device: &RenderDevice) -> Self::Resource {
+        todo!()
+    }
+}
+
+impl RenderResource for SwapchainImage {
+    type Descriptor = SwapchainImageDescriptor;
+
+    fn borrow_resource(res: &AnyRenderResource) -> &Self {
+        match res.borrow() {
+            AnyRenderResourceRef::SwapchainImage(image) => image,
+            _ => unimplemented!(),
+        }
+    }
+}
+
+impl From<SwapchainImageDescriptor> for AnyRenderResourceDescriptor {
+    fn from(value: SwapchainImageDescriptor) -> Self {
+        AnyRenderResourceDescriptor::SwapchainImage(value)
+    }
+}
+impl RenderResourceDescriptor for SwapchainImageDescriptor {
+    type Resource = SwapchainImage;
 
     fn create_resource(&self, _device: &RenderDevice) -> Self::Resource {
         todo!()
