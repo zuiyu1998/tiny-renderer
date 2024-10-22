@@ -99,7 +99,7 @@ impl<'a> PassBuilder<'a> {
         });
 
         Ref {
-            desc: handle.descriptor.clone(),
+            descriptor: handle.descriptor.clone(),
             handle: resource_handle,
             marker: PhantomData,
         }
@@ -123,7 +123,7 @@ impl<'a> PassBuilder<'a> {
         });
 
         Ref {
-            desc: handle.descriptor.clone(),
+            descriptor: handle.descriptor.clone(),
             handle: resource_handle,
             marker: PhantomData,
         }

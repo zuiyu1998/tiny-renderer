@@ -59,7 +59,7 @@ impl From<ImageDescriptor> for AnyRenderResourceDescriptor {
 impl RenderResourceDescriptor for ImageDescriptor {
     type Resource = Image;
 
-    fn create_resource(&self, device: &RenderDevice) -> Self::Resource {
+    fn create_resource(&self, _device: &RenderDevice) -> Self::Resource {
         todo!()
     }
 }

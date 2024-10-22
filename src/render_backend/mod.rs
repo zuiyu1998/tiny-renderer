@@ -26,6 +26,7 @@ pub struct RenderBackend {
     pub adapter: RenderAdapter,
 }
 
+#[derive(Deref, DerefMut)]
 pub struct RenderBuffer(WgpuWrapper<WgpuBuffer>);
 
 impl RenderBuffer {

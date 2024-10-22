@@ -1,12 +1,15 @@
 use std::{marker::PhantomData, mem::take, sync::Arc};
 
+use crate::render_backend::{RenderBackend, RenderDevice};
+
 use super::{
     pass::PassNode,
     resource::{
         GraphResourceCreateInfo, ImportToFrameGraph, RenderResource, RenderResourceDescriptor,
         ResourceNode, ResourceNodeHandle, VirtualResource,
     },
-    RawResourceNodeHandle,
+    resource_registry::{RegistryResource, RenderContext},
+    GraphResourceInfo, RawResourceNodeHandle,
 };
 
 pub trait TypeEquals {
@@ -21,12 +24,56 @@ impl<T: Sized> TypeEquals for T {
     }
 }
 
-///FrameGraph是一个有向无环图，用于渲染数据的整合，cocos的rust版本
+///FrameGraph是一个有向无环图，用于渲染数据的整合
 #[derive(Default)]
 pub struct FrameGraph {
     pub pass_nodes: Vec<PassNode>,
     pub resource_nodes: Vec<ResourceNode>,
     pub virtual_resources: Vec<VirtualResource>,
+
+    pub compiled_frame_fraph: Option<CompiledFrameGraph>,
+}
+
+pub struct CompiledFrameGraph {
+    pub pass_nodes: Vec<PassNode>,
+    pub resource_nodes: Vec<ResourceNode>,
+    pub virtual_resources: Vec<VirtualResource>,
+    pub registry_resources: Vec<RegistryResource>,
+}
+
+impl CompiledFrameGraph {
+    pub fn execute(self, backend: &RenderBackend) {
+        let CompiledFrameGraph {
+            pass_nodes,
+            registry_resources,
+            ..
+        } = self;
+
+        let encoder = backend
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("frame graph encoder"),
+            });
+
+        let mut render_context = RenderContext {
+            resources: registry_resources,
+            encoder,
+        };
+
+        //注入屏幕
+
+        for mut pass_node in pass_nodes.into_iter() {
+            println!("{}", pass_node.name);
+
+            //申请资源
+
+            if let Some(render_fn) = pass_node.render_fn.take() {
+                render_fn(&mut render_context);
+            }
+
+            //释放资源
+        }
+    }
 }
 
 impl FrameGraph {
@@ -91,6 +138,37 @@ impl FrameGraph {
 
         //计算生命周期
         self.compute_resource_lifetime();
+
+        //生成CompiledFrameGraph
+        self.compiled_frame_fraph();
+    }
+
+    fn compiled_frame_fraph(&mut self) {
+        if self.pass_nodes.is_empty() {
+            return;
+        }
+
+        let registry_resources: Vec<RegistryResource> = self
+            .resource_nodes
+            .iter()
+            .map(|node| match &node.info {
+                GraphResourceInfo::Created(created) => RegistryResource::Created(created.clone()),
+                GraphResourceInfo::Imported(improted) => {
+                    RegistryResource::Resource(improted.imported())
+                }
+            })
+            .collect();
+
+        let pass_nodes = take(&mut self.pass_nodes);
+        let resource_nodes = take(&mut self.resource_nodes);
+        let virtual_resources = take(&mut self.virtual_resources);
+
+        self.compiled_frame_fraph = Some(CompiledFrameGraph {
+            registry_resources,
+            pass_nodes,
+            resource_nodes,
+            virtual_resources,
+        })
     }
 
     fn compute_resource_lifetime(&mut self) {
@@ -186,19 +264,9 @@ impl FrameGraph {
     }
 
     ///execute阶段
-    pub fn execute(&mut self) {
-        let pass_nodes = take(&mut self.pass_nodes);
-
-        for pass_node in pass_nodes.into_iter() {
-            println!("{}", pass_node.name);
+    pub fn execute(&mut self, backend: &RenderBackend) {
+        if let Some(frame_graph) = self.compiled_frame_fraph.take() {
+            frame_graph.execute(backend);
         }
-
-        self.clear();
-    }
-
-    fn clear(&mut self) {
-        self.pass_nodes.clear();
-        self.resource_nodes.clear();
-        self.resource_nodes.clear();
     }
 }

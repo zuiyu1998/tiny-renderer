@@ -56,7 +56,12 @@ impl AppState {
     }
 
     pub fn run_app_update(&mut self) {
+        println!("app update");
         self.graphs_context.update();
+    }
+
+    pub fn redraw_requested(&mut self) {
+        self.graphs_context.redraw_requested();
     }
 
     pub fn initialize(&mut self, event_loop: &ActiveEventLoop) {
@@ -114,5 +119,7 @@ impl ApplicationHandler for AppState {
                 self.redraw_requested = true;
             }
         }
+
+        self.redraw_requested();
     }
 }

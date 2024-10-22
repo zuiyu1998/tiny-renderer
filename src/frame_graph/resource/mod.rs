@@ -13,13 +13,13 @@ use super::FrameGraph;
 #[derive(Debug)]
 pub struct Ref<ResType: RenderResource, ViewType: GpuViewType> {
     pub(crate) handle: VirtualResourceHandle,
-    pub(crate) desc: <ResType as RenderResource>::Descriptor,
+    pub(crate) descriptor: <ResType as RenderResource>::Descriptor,
     pub(crate) marker: PhantomData<(ResType, ViewType)>,
 }
 
 impl<ResType: RenderResource, ViewType: GpuViewType> Ref<ResType, ViewType> {
-    pub fn desc(&self) -> &<ResType as RenderResource>::Descriptor {
-        &self.desc
+    pub fn descriptor(&self) -> &<ResType as RenderResource>::Descriptor {
+        &self.descriptor
     }
 }
 
@@ -31,7 +31,7 @@ where
     fn clone(&self) -> Self {
         Self {
             handle: self.handle,
-            desc: self.desc.clone(),
+            descriptor: self.descriptor.clone(),
             marker: PhantomData,
         }
     }
@@ -72,6 +72,7 @@ pub enum AnyRenderResource {
     ImportedBuffer(Arc<Buffer>),
     OwnedImage(Image),
     ImportedImage(Arc<Image>),
+    Pending,
 }
 
 impl AnyRenderResource {
@@ -83,6 +84,9 @@ impl AnyRenderResource {
             }
             AnyRenderResource::OwnedImage(image) => AnyRenderResourceRef::Image(image),
             AnyRenderResource::ImportedImage(image) => AnyRenderResourceRef::Image(image.as_ref()),
+            AnyRenderResource::Pending => {
+                unimplemented!()
+            }
         }
     }
 }
@@ -97,6 +101,20 @@ pub enum AnyRenderResourceDescriptor {
     Buffer(BufferDescriptor),
     Image(ImageDescriptor),
     SwapchainImage,
+}
+
+impl AnyRenderResourceDescriptor {
+    pub fn create_resource(&self, device: &RenderDevice) -> AnyRenderResource {
+        match self {
+            AnyRenderResourceDescriptor::Buffer(buffer) => {
+                AnyRenderResource::OwnedBuffer(buffer.create_resource(device))
+            }
+            AnyRenderResourceDescriptor::Image(buffer) => {
+                AnyRenderResource::OwnedImage(buffer.create_resource(device))
+            }
+            _ => AnyRenderResource::Pending,
+        }
+    }
 }
 
 ///描述渲染资源如何被创建
@@ -186,16 +204,6 @@ pub struct ResourceNodeHandle<R: RenderResource> {
     pub marker: PhantomData<R>,
 }
 
-impl<R: RenderResource> ResourceNodeHandle<R> {
-    pub(crate) fn clone_unchecked(&self) -> Self {
-        Self {
-            raw: self.raw,
-            descriptor: self.descriptor.clone(),
-            marker: PhantomData,
-        }
-    }
-}
-
 ///资源节点
 /// 一类是graph自己管理的节点
 /// 一类是从外部导入的节点
@@ -240,6 +248,19 @@ pub struct GraphResourceCreateInfo {
 pub enum GraphResourceImportInfo {
     Image { resource: Arc<Image> },
     Buffer { resource: Arc<Buffer> },
+}
+
+impl GraphResourceImportInfo {
+    pub fn imported(&self) -> AnyRenderResource {
+        match self {
+            GraphResourceImportInfo::Buffer { resource } => {
+                AnyRenderResource::ImportedBuffer(resource.clone())
+            }
+            GraphResourceImportInfo::Image { resource } => {
+                AnyRenderResource::ImportedImage(resource.clone())
+            }
+        }
+    }
 }
 
 ///渲染资源

@@ -29,7 +29,15 @@ impl InitializedGraphsContext {
         }
     }
 
-    pub fn update(&mut self) {}
+    pub fn update(&mut self) {
+        println!("InitializedGraphsContext update");
+
+        self.renderer.render();
+    }
+
+    pub fn redraw_requested(&mut self) {
+        self.primary_window.request_redraw();
+    }
 }
 
 impl GraphsContext {
@@ -42,6 +50,12 @@ impl GraphsContext {
     pub fn update(&mut self) {
         if let GraphsContext::Initialized(context) = self {
             context.update();
+        }
+    }
+
+    pub fn redraw_requested(&mut self) {
+        if let GraphsContext::Initialized(context) = self {
+            context.redraw_requested();
         }
     }
 }

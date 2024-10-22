@@ -42,7 +42,7 @@ impl TemporalFrameGraph {
     }
 
     pub fn execute(&mut self) {
-        self.frame_graph.execute();
+        self.frame_graph.execute(&self.render_backend);
     }
 }
 

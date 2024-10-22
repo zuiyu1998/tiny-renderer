@@ -1,4 +1,7 @@
-use super::{AnyRenderResource, GraphResourceCreateInfo};
+use wgpu::CommandEncoder;
+
+use super::{AnyRenderResource, GraphResourceCreateInfo, RenderResource, VirtualResourceHandle};
+use crate::error::{Kind, Result};
 
 //根据资源节点信息生成的资源
 pub enum RegistryResource {
@@ -7,5 +10,28 @@ pub enum RegistryResource {
 }
 
 pub struct RenderContext {
-    resources: Vec<RegistryResource>,
+    pub resources: Vec<RegistryResource>,
+    pub encoder: CommandEncoder,
+}
+
+impl RenderContext {
+    pub fn begin_render_pass<'encoder>(
+        &'encoder mut self,
+        desc: &wgpu::RenderPassDescriptor<'_>,
+    ) -> wgpu::RenderPass<'encoder> {
+        self.encoder.begin_render_pass(desc)
+    }
+
+    pub fn get_render_resource<ResType: RenderResource>(
+        &self,
+        handle: &VirtualResourceHandle,
+    ) -> Result<&ResType> {
+        let registry_resource = &self.resources[handle.id as usize];
+
+        match registry_resource {
+            RegistryResource::Created(_) => Err(Kind::ResourceUninitialized.into()),
+
+            RegistryResource::Resource(reource) => Ok(ResType::borrow_resource(reource)),
+        }
+    }
 }

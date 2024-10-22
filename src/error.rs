@@ -6,6 +6,8 @@ pub enum Kind {
     ResourceTypeNoMatch,
     #[error("ResourceAlreadyTaken")]
     ResourceAlreadyTaken,
+    #[error("ResourceUninitialized")]
+    ResourceUninitialized,
 }
 
 #[derive(Debug, Error)]
