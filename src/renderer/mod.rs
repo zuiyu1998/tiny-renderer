@@ -28,12 +28,13 @@ impl WorldRenderer {
 
         let vertex_writer = builder.write(&vertex);
 
-        builder.read(&vertex);
+        let vertex_reader = builder.read(&vertex);
         let swap_image_ref = builder.read(&swap_image_handle);
 
-        builder.render(move |render_context| {
-            let swap_image: &SwapchainImage =
-                render_context.get_render_resource(&swap_image_ref.handle)?;
+        builder.render(move |api| {
+            let swap_image: &SwapchainImage = api
+                .render_context
+                .get_render_resource(&swap_image_ref.handle)?;
 
             let swap_image_view =
                 swap_image
@@ -43,7 +44,16 @@ impl WorldRenderer {
                         ..Default::default()
                     });
 
-            let mut render_pass = render_context.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let vertex: &Buffer = api
+                .render_context
+                .get_render_resource(&vertex_writer.handle)?;
+
+            api.render_context
+                .backend
+                .queue
+                .write_buffer(&vertex.render_buffer, 0, &[]);
+
+            let mut render_pass = api.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &swap_image_view,
@@ -62,7 +72,7 @@ impl WorldRenderer {
                 ..Default::default()
             });
 
-            let vertex: &Buffer = render_context.get_render_resource(&vertex_writer.handle)?;
+            render_pass.set_vertex_buffer(0, &vertex_reader);
 
             Ok(())
         });

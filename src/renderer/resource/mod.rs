@@ -26,7 +26,7 @@ pub struct Image {
     pub descriptor: ImageDescriptor,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImageDescriptor {}
 
 pub struct Buffer {
@@ -43,7 +43,8 @@ impl Buffer {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+
 pub struct BufferDescriptor {
     pub label: String,
     pub size: u64,

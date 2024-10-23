@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
 use super::{
-    resource_registry::RenderContext, GpuSrv, GpuUav, PassNode, PassResourceRef, PutResourceNode,
-    Ref, RenderResource, RenderResourceDescriptor, ResourceNodeHandle, TemporalFrameGraph,
+    resource_registry::RenderApi, GpuSrv, GpuUav, PassNode, PassResourceRef, PutResourceNode, Ref,
+    RenderResource, RenderResourceDescriptor, ResourceNodeHandle, TemporalFrameGraph,
     TemporalResourceKey, TypeEquals,
 };
 
@@ -42,7 +42,7 @@ impl<'a> PassBuilder<'a> {
         }
     }
 
-    pub fn render(mut self, render: impl (FnOnce(&mut RenderContext) -> Result<()>) + 'static) {
+    pub fn render(mut self, render: impl (FnOnce(&mut RenderApi) -> Result<()>) + 'static) {
         let prev = self
             .pass_node
             .as_mut()

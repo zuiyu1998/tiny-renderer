@@ -8,8 +8,9 @@ use super::{
         GraphResourceCreateInfo, ImportToFrameGraph, RenderResource, RenderResourceDescriptor,
         ResourceNode, ResourceNodeHandle, VirtualResource,
     },
-    resource_registry::{RegistryResource, RenderContext},
-    GraphResourceInfo, RawResourceNodeHandle,
+    resource_registry::{RegistryResource, RenderApi, RenderContext},
+    AnyRenderResource, AnyRenderResourceDescriptor, GraphResourceInfo, RawResourceNodeHandle,
+    TransientResourceCache,
 };
 
 pub trait TypeEquals {
@@ -42,12 +43,25 @@ pub struct CompiledFrameGraph {
 }
 
 impl CompiledFrameGraph {
-    pub fn execute(self, backend: &RenderBackend, swapchain_images: SwapchainImages) {
+    pub fn execute(
+        self,
+        backend: &RenderBackend,
+        swapchain_images: SwapchainImages,
+        cache: &mut TransientResourceCache,
+    ) {
         let CompiledFrameGraph {
             pass_nodes,
             registry_resources,
             ..
         } = self;
+
+        let mut render_context = RenderContext {
+            resources: registry_resources,
+            backend: backend.clone(),
+        };
+
+        //注入屏幕
+        render_context.initialize_swap_images(swapchain_images);
 
         let encoder = backend
             .device
@@ -55,27 +69,36 @@ impl CompiledFrameGraph {
                 label: Some("frame graph encoder"),
             });
 
-        let mut render_context = RenderContext {
-            resources: registry_resources,
+        let mut render_api = RenderApi {
+            render_context,
             encoder,
         };
 
-        render_context.initialize_swap_images(swapchain_images);
-
-        //注入屏幕
-
         for mut pass_node in pass_nodes.into_iter() {
-            println!("{}", pass_node.name);
+            println!("pass_node: {:?}", pass_node);
 
             //申请资源
 
+            for registry_resource_index in pass_node.resource_request_array {
+                let registry_resource =
+                    &mut render_api.render_context.resources[registry_resource_index as usize];
+
+                registry_resource.request(cache);
+            }
+
             if let Some(render_fn) = pass_node.render_fn.take() {
-                if let Err(e) = render_fn(&mut render_context) {
-                    println!("{}", e);
+                if let Err(e) = render_fn(&mut render_api) {
+                    println!("render_fn {}", e);
                 }
             }
 
             //释放资源
+            for registry_resource_index in pass_node.resource_release_array {
+                let registry_resource =
+                    &mut render_api.render_context.resources[registry_resource_index as usize];
+
+                registry_resource.release(cache);
+            }
         }
     }
 }
@@ -156,7 +179,24 @@ impl FrameGraph {
             .resource_nodes
             .iter()
             .map(|node| match &node.info {
-                GraphResourceInfo::Created(created) => RegistryResource::Created(created.clone()),
+                GraphResourceInfo::Created(GraphResourceCreateInfo { desciptor }) => {
+                    match desciptor {
+                        AnyRenderResourceDescriptor::SwapchainImage(_) => {
+                            RegistryResource::Resource(AnyRenderResource::Pending)
+                        }
+                        AnyRenderResourceDescriptor::Buffer(_) => {
+                            RegistryResource::Created(GraphResourceCreateInfo {
+                                desciptor: desciptor.clone(),
+                            })
+                        }
+
+                        AnyRenderResourceDescriptor::Image(_) => {
+                            RegistryResource::Created(GraphResourceCreateInfo {
+                                desciptor: desciptor.clone(),
+                            })
+                        }
+                    }
+                }
                 GraphResourceInfo::Imported(improted) => {
                     RegistryResource::Resource(improted.imported())
                 }
@@ -268,9 +308,14 @@ impl FrameGraph {
     }
 
     ///execute阶段
-    pub fn execute(&mut self, backend: &RenderBackend, swapchain_images: SwapchainImages) {
+    pub fn execute(
+        &mut self,
+        backend: &RenderBackend,
+        swapchain_images: SwapchainImages,
+        cache: &mut TransientResourceCache,
+    ) {
         if let Some(frame_graph) = self.compiled_frame_fraph.take() {
-            frame_graph.execute(backend, swapchain_images);
+            frame_graph.execute(backend, swapchain_images, cache);
         }
     }
 }

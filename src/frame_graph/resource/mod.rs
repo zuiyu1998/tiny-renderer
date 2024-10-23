@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-use super::FrameGraph;
+use super::{FrameGraph, TransientResourceCache};
 
 #[derive(Debug)]
 pub struct Ref<ResType: RenderResource, ViewType: GpuViewType> {
@@ -76,6 +76,7 @@ pub enum AnyRenderResource {
     ImportedImage(Arc<Image>),
     Pending,
     SwapchainImage(SwapchainImage),
+    Release,
 }
 
 impl AnyRenderResource {
@@ -91,6 +92,9 @@ impl AnyRenderResource {
                 unimplemented!()
             }
             AnyRenderResource::SwapchainImage(image) => AnyRenderResourceRef::SwapchainImage(image),
+            AnyRenderResource::Release => {
+                unimplemented!()
+            }
         }
     }
 }
@@ -101,7 +105,7 @@ pub enum AnyRenderResourceRef<'a> {
     SwapchainImage(&'a SwapchainImage),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum AnyRenderResourceDescriptor {
     Buffer(BufferDescriptor),
     Image(ImageDescriptor),
@@ -242,7 +246,7 @@ pub enum GraphResourceInfo {
     Imported(GraphResourceImportInfo),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 
 pub struct GraphResourceCreateInfo {
     pub desciptor: AnyRenderResourceDescriptor,
@@ -271,8 +275,10 @@ impl GraphResourceImportInfo {
 ///渲染资源
 /// Descriptor,渲染资源对应的描述
 /// 是否可以使用dyn
-pub trait RenderResource {
+pub trait RenderResource: Sized {
     type Descriptor: RenderResourceDescriptor;
 
     fn borrow_resource(res: &AnyRenderResource) -> &Self;
+
+    fn release(self, _cache: &mut TransientResourceCache) {}
 }

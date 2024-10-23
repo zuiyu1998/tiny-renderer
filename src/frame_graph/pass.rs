@@ -1,8 +1,11 @@
-use super::{resource_registry::RenderContext, VirtualResourceHandle};
+use std::fmt::Debug;
+
+use super::{resource_registry::RenderApi, VirtualResourceHandle};
 use crate::error::Result;
 
-type DynRenderFn = dyn FnOnce(&mut RenderContext) -> Result<()>;
+type DynRenderFn = dyn FnOnce(&mut RenderApi) -> Result<()>;
 
+#[derive(Debug)]
 pub struct PassResourceRef {
     pub(crate) handle: VirtualResourceHandle,
 }
@@ -29,6 +32,21 @@ pub struct PassNode {
     pub resource_release_array: Vec<u32>,
 
     pub render_fn: Option<Box<DynRenderFn>>,
+}
+
+impl Debug for PassNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PassNode")
+            .field("id", &self.id)
+            .field("insert_point", &self.insert_point)
+            .field("name", &self.name)
+            .field("writes", &self.writes)
+            .field("reads", &self.reads)
+            .field("ref_count", &self.ref_count)
+            .field("resource_request_array", &self.resource_request_array)
+            .field("resource_release_array", &self.resource_release_array)
+            .finish()
+    }
 }
 
 impl PassNode {

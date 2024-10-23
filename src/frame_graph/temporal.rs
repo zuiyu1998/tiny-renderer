@@ -14,18 +14,51 @@ use super::{
     ResourceNodeHandle, TypeEquals,
 };
 
+//创建的资源缓存
+pub struct TransientResourceCache {
+    pub render_backend: RenderBackend,
+    pub images: HashMap<ImageDescriptor, Vec<Image>>,
+    pub buffers: HashMap<BufferDescriptor, Vec<Buffer>>,
+}
+
+impl TransientResourceCache {
+    pub fn new(render_backend: RenderBackend) -> Self {
+        Self {
+            render_backend,
+            images: Default::default(),
+            buffers: Default::default(),
+        }
+    }
+}
+
+impl TransientResourceCache {
+    pub fn request_buffer(&mut self, desc: &BufferDescriptor) -> Buffer {
+        match self.buffers.get_mut(desc).and_then(|data| data.pop()) {
+            Some(buffer) => buffer,
+            None => {
+                let render_buffer = self.render_backend.device.create_render_buffer(desc);
+                Buffer::new(render_buffer, desc.clone())
+            }
+        }
+    }
+}
+
 pub struct TemporalFrameGraph {
     pub state: TemporalFrameGraphState,
     pub(crate) frame_graph: FrameGraph,
     pub render_backend: RenderBackend,
+    cache: TransientResourceCache,
 }
 
 impl TemporalFrameGraph {
     pub fn new(render_backend: RenderBackend) -> Self {
+        let cache = TransientResourceCache::new(render_backend.clone());
+
         TemporalFrameGraph {
             state: Default::default(),
             frame_graph: Default::default(),
             render_backend,
+            cache,
         }
     }
 
@@ -43,7 +76,7 @@ impl TemporalFrameGraph {
 
     pub fn execute(&mut self, swapchain_images: SwapchainImages) {
         self.frame_graph
-            .execute(&self.render_backend, swapchain_images);
+            .execute(&self.render_backend, swapchain_images, &mut self.cache);
     }
 }
 

@@ -1,9 +1,15 @@
-use wgpu::CommandEncoder;
+use std::mem::swap;
 
-use super::{AnyRenderResource, GraphResourceCreateInfo, RenderResource, VirtualResourceHandle};
+use wgpu::{CommandEncoder, RenderPass};
+
+use super::{
+    AnyRenderResource, AnyRenderResourceDescriptor, GpuSrv, GraphResourceCreateInfo, Ref,
+    RenderResource, TransientResourceCache, VirtualResourceHandle,
+};
 use crate::{
     error::{Kind, Result},
-    renderer::resource::SwapchainImages,
+    render_backend::RenderBackend,
+    renderer::resource::{Buffer, SwapchainImages},
 };
 
 //根据资源节点信息生成的资源
@@ -12,9 +18,75 @@ pub enum RegistryResource {
     Resource(AnyRenderResource),
 }
 
+impl RegistryResource {
+    pub fn request(&mut self, cache: &mut TransientResourceCache) {
+        match self {
+            RegistryResource::Created(GraphResourceCreateInfo { desciptor }) => match desciptor {
+                AnyRenderResourceDescriptor::Buffer(buffer) => {
+                    let buffer = cache.request_buffer(buffer);
+                    *self = RegistryResource::Resource(AnyRenderResource::OwnedBuffer(buffer));
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+
+    pub fn release(&mut self, cache: &mut TransientResourceCache) {
+        let mut registry_resource = RegistryResource::Resource(AnyRenderResource::Release);
+        swap(self, &mut registry_resource);
+
+        match registry_resource {
+            RegistryResource::Resource(resource) => match resource {
+                AnyRenderResource::SwapchainImage(image) => {
+                    image.release(cache);
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+}
+
+pub struct TrackedRenderPass<'a> {
+    pub render_pass: RenderPass<'a>,
+    pub render_context: &'a RenderContext,
+}
+
+impl<'a> TrackedRenderPass<'a> {
+    pub fn set_vertex_buffer(&mut self, slot: u32, handle: &Ref<Buffer, GpuSrv>) {
+        let buffer: &Buffer = self
+            .render_context
+            .get_render_resource(&handle.handle)
+            .unwrap();
+
+        self.render_pass
+            .set_vertex_buffer(slot, buffer.render_buffer.slice(0..));
+    }
+}
+
+pub struct RenderApi {
+    pub render_context: RenderContext,
+    pub encoder: CommandEncoder,
+}
+
+impl RenderApi {
+    pub fn begin_render_pass<'encoder>(
+        &'encoder mut self,
+        desc: &wgpu::RenderPassDescriptor<'_>,
+    ) -> TrackedRenderPass<'encoder> {
+        let render_pass = self.encoder.begin_render_pass(desc);
+
+        TrackedRenderPass {
+            render_pass,
+            render_context: &self.render_context,
+        }
+    }
+}
+
 pub struct RenderContext {
     pub resources: Vec<RegistryResource>,
-    pub encoder: CommandEncoder,
+    pub backend: RenderBackend,
 }
 
 impl RenderContext {
@@ -32,13 +104,6 @@ impl RenderContext {
                 _ => {}
             }
         }
-    }
-
-    pub fn begin_render_pass<'encoder>(
-        &'encoder mut self,
-        desc: &wgpu::RenderPassDescriptor<'_>,
-    ) -> wgpu::RenderPass<'encoder> {
-        self.encoder.begin_render_pass(desc)
     }
 
     pub fn get_render_resource<ResType: RenderResource>(

@@ -7,7 +7,7 @@ use super::{
 };
 
 use crate::{
-    frame_graph::FrameGraph,
+    frame_graph::{FrameGraph, TransientResourceCache},
     render_backend::RenderDevice,
     renderer::resource::{Image, ImageDescriptor, SwapchainImage, SwapchainImageDescriptor},
 };
@@ -72,6 +72,12 @@ impl RenderResource for SwapchainImage {
             AnyRenderResourceRef::SwapchainImage(image) => image,
             _ => unimplemented!(),
         }
+    }
+
+    fn release(self, _cache: &mut TransientResourceCache) {
+        println!("SwapchainImage release");
+
+        self.texture.present();
     }
 }
 

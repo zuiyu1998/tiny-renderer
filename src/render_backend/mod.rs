@@ -44,6 +44,10 @@ impl RenderDevice {
 
         RenderBuffer::new(buffer)
     }
+
+    pub fn configure_surface(&self, surface: &wgpu::Surface, config: &wgpu::SurfaceConfiguration) {
+        surface.configure(&self.0, config);
+    }
 }
 
 #[derive(Deref, DerefMut, Clone)]
