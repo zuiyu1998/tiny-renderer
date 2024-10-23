@@ -74,10 +74,8 @@ impl RenderResource for SwapchainImage {
         }
     }
 
-    fn release(self, _cache: &mut TransientResourceCache) {
-        println!("SwapchainImage release");
-
-        self.texture.present();
+    fn release(self, cache: &mut TransientResourceCache) {
+        cache.swap_images.push(self);
     }
 }
 

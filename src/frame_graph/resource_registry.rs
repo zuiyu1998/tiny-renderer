@@ -1,6 +1,6 @@
-use std::mem::swap;
+use std::{mem::swap, ops::Range};
 
-use wgpu::{CommandEncoder, RenderPass};
+use wgpu::{CommandEncoder, RenderPass, RenderPipeline};
 
 use super::{
     AnyRenderResource, AnyRenderResourceDescriptor, GpuSrv, GraphResourceCreateInfo, Ref,
@@ -62,6 +62,14 @@ impl<'a> TrackedRenderPass<'a> {
 
         self.render_pass
             .set_vertex_buffer(slot, buffer.render_buffer.slice(0..));
+    }
+
+    pub fn set_pipeline(&mut self, pipeline: &RenderPipeline) {
+        self.render_pass.set_pipeline(pipeline);
+    }
+
+    pub fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>) {
+        self.render_pass.draw(vertices, instances);
     }
 }
 

@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, mem::take, sync::Arc};
+use std::{iter, marker::PhantomData, mem::take, sync::Arc};
 
 use crate::{render_backend::RenderBackend, renderer::resource::SwapchainImages};
 
@@ -99,6 +99,18 @@ impl CompiledFrameGraph {
 
                 registry_resource.release(cache);
             }
+        }
+
+        render_api
+            .render_context
+            .backend
+            .queue
+            .submit(iter::once(render_api.encoder.finish()));
+
+        let swap_images = take(&mut cache.swap_images);
+
+        for swap_image in swap_images.into_iter() {
+            swap_image.texture.present();
         }
     }
 }

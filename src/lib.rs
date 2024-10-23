@@ -23,7 +23,7 @@ impl InitializedGraphsContext {
     pub fn new(primary_window: Window) -> Self {
         let render_backend = RenderBackend::create_render_backend();
         let windows = Windows::new(primary_window, &render_backend);
-        let renderer = Renderer::new(render_backend);
+        let renderer = Renderer::new(render_backend, windows.get_primary_window());
 
         Self { windows, renderer }
     }

@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
-use wgpu::{Surface, SurfaceTargetUnsafe, SurfaceTexture};
+use wgpu::{Surface, SurfaceTargetUnsafe, SurfaceTexture, TextureFormat};
 use winit::window::{Window, WindowId};
 
 use crate::{
@@ -12,6 +12,7 @@ pub struct WindowState {
     window: Window,
     surface: Surface<'static>,
     texture: Option<SurfaceTexture>,
+    pub surface_format: TextureFormat,
 }
 
 impl WindowState {
@@ -30,6 +31,10 @@ pub struct Windows {
 }
 
 impl Windows {
+    pub fn get_primary_window(&self) -> &WindowState {
+        self.windows.get(&self.primary_window_id).unwrap()
+    }
+
     pub fn request_redraw(&mut self) {
         for state in self.windows.values_mut() {
             state.window.request_redraw();
@@ -99,5 +104,6 @@ pub fn create_window_state(backend: &RenderBackend, window: Window) -> WindowSta
         surface,
         window,
         texture: None,
+        surface_format,
     }
 }

@@ -6,7 +6,9 @@ use std::{
 use crate::{
     error::{Kind, Result},
     render_backend::RenderBackend,
-    renderer::resource::{Buffer, BufferDescriptor, Image, ImageDescriptor, SwapchainImages},
+    renderer::resource::{
+        Buffer, BufferDescriptor, Image, ImageDescriptor, SwapchainImage, SwapchainImages,
+    },
 };
 
 use super::{
@@ -19,6 +21,7 @@ pub struct TransientResourceCache {
     pub render_backend: RenderBackend,
     pub images: HashMap<ImageDescriptor, Vec<Image>>,
     pub buffers: HashMap<BufferDescriptor, Vec<Buffer>>,
+    pub swap_images: Vec<SwapchainImage>,
 }
 
 impl TransientResourceCache {
@@ -27,6 +30,7 @@ impl TransientResourceCache {
             render_backend,
             images: Default::default(),
             buffers: Default::default(),
+            swap_images: Default::default(),
         }
     }
 }
