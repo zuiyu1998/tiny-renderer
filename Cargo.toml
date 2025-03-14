@@ -1,0 +1,13 @@
+[package]
+name = "tiny-renderer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wgpu = { version = "24" }
+tracing = { version = "0.1" }
+
+[dev-dependencies]
+winit = "0.30"
+tracing-subscriber = { version = "0.3" }
+futures-lite = { version = "2.6" }
