@@ -1,0 +1,212 @@
+use super::{
+    DevicePass, PassNode, Resource, ResourceInfo, ResourceNode, ResourceTable,
+    pass_node_builder::PassNodeBuilder,
+};
+use crate::{
+    FGResource, FGResourceDescriptor, TypeEquals, device::Device, frame_graph::ResourceEntry,
+    handle::TypeHandle, transient_resource_cache::TransientResourceCache,
+};
+
+pub struct ExecutingFrameGraph {
+    resource_table: ResourceTable,
+    device_passs: Vec<DevicePass>,
+}
+
+impl ExecutingFrameGraph {
+    pub fn execute(&mut self) {
+        for i in 0..self.device_passs.len() {
+            let device_pass = &mut self.device_passs[i];
+
+            device_pass.execute();
+        }
+    }
+
+    pub fn new(resource_table: ResourceTable, device_passs: Vec<DevicePass>) -> Self {
+        ExecutingFrameGraph {
+            resource_table,
+            device_passs,
+        }
+    }
+}
+
+pub struct FrameGraphExecutionParams<'a> {
+    device: &'a Device,
+}
+
+pub struct CompiledFrameGraph {
+    fg: FrameGraph,
+    resource_table: ResourceTable,
+    device_passs: Vec<DevicePass>,
+}
+
+impl CompiledFrameGraph {
+    pub fn new(fg: FrameGraph) -> Self {
+        CompiledFrameGraph {
+            fg,
+            resource_table: ResourceTable::default(),
+            device_passs: vec![],
+        }
+    }
+
+    pub fn begin_execute(
+        mut self,
+        device: &Device,
+        transient_resource_cache: &mut TransientResourceCache,
+    ) -> ExecutingFrameGraph {
+        for index in 0..self.fg.pass_nodes.len() {
+            let pass_node_handle = self.fg.pass_nodes[index].handle.clone();
+
+            for resource_handle in self
+                .fg
+                .get_pass_node(&pass_node_handle)
+                .resource_request_array
+                .clone()
+            {
+                let resource = self.fg.get_resource(&resource_handle);
+                self.resource_table
+                    .release_resources(resource, device, transient_resource_cache);
+            }
+
+            let mut device_pass = DevicePass::default();
+            device_pass.extra(&mut self.fg, pass_node_handle);
+            self.device_passs.push(device_pass);
+        }
+
+        ExecutingFrameGraph::new(self.resource_table, self.device_passs)
+    }
+}
+
+#[derive(Default)]
+pub struct FrameGraph {
+    pub(crate) pass_nodes: Vec<PassNode>,
+    resources: Vec<Resource>,
+    resource_nodes: Vec<ResourceNode>,
+}
+
+impl FrameGraph {
+    pub fn compute_resource_lifetime(&mut self) {
+        for pass_node in self.pass_nodes.iter_mut() {
+            //更新渲染节点读取的资源节点所指向资源的生命周期
+            for resource_node_handle in pass_node.reads.iter() {
+                let resource_node = &self.resource_nodes[resource_node_handle.index()];
+                let resource = &mut self.resources[resource_node.resource_handle.index()];
+                resource
+                    .get_info_mut()
+                    .update_lifetime(pass_node.handle.clone());
+            }
+
+            //更新渲染节点吸入的资源节点所指向资源的生命周期
+            for resource_node_handle in pass_node.writes.iter() {
+                let resource_node = &self.resource_nodes[resource_node_handle.index()];
+                let resource = &mut self.resources[resource_node.resource_handle.index()];
+                let info = resource.get_info_mut();
+                info.update_lifetime(pass_node.handle.clone());
+            }
+        }
+
+        //更新pass_node中资源使用的索引顺序
+        for resource_index in 0..self.resources.len() {
+            let resource = &self.resources[resource_index];
+            let info = resource.get_info().clone();
+
+            if info.first_pass_node_handle.is_none() || info.last_pass_node_handle.is_none() {
+                continue;
+            }
+
+            let first_pass_node_handle = info.first_pass_node_handle.unwrap();
+            let first_pass_node = &mut self.pass_nodes[first_pass_node_handle.index()];
+            first_pass_node
+                .resource_request_array
+                .push(info.handle.clone());
+
+            let last_pass_node_handle = info.last_pass_node_handle.unwrap();
+            let last_pass_node = &mut self.pass_nodes[last_pass_node_handle.index()];
+            last_pass_node.resource_release_array.push(info.handle);
+        }
+    }
+
+    fn sort(&mut self) {
+        self.pass_nodes
+            .sort_by(|a, b| a.insert_point.cmp(&b.insert_point));
+    }
+
+    pub fn compile(mut self) -> Option<CompiledFrameGraph> {
+        if self.pass_nodes.is_empty() {
+            return None;
+        }
+
+        self.sort();
+        //todo cull
+
+        self.compute_resource_lifetime();
+
+        Some(CompiledFrameGraph::new(self))
+    }
+}
+
+impl FrameGraph {
+    pub fn get_pass_node_mut(&mut self, handle: &TypeHandle<PassNode>) -> &mut PassNode {
+        &mut self.pass_nodes[handle.index()]
+    }
+    pub fn get_pass_node(&self, handle: &TypeHandle<PassNode>) -> &PassNode {
+        &self.pass_nodes[handle.index()]
+    }
+
+    pub fn get_resource_node(&self, handle: &TypeHandle<ResourceNode>) -> &ResourceNode {
+        &self.resource_nodes[handle.index()]
+    }
+
+    pub fn get_resource_node_mut(
+        &mut self,
+        handle: &TypeHandle<ResourceNode>,
+    ) -> &mut ResourceNode {
+        &mut self.resource_nodes[handle.index()]
+    }
+
+    pub fn get_resource(&self, handle: &TypeHandle<Resource>) -> &Resource {
+        &self.resources[handle.index()]
+    }
+
+    pub fn get_resource_mut(&mut self, handle: &TypeHandle<Resource>) -> &mut Resource {
+        &mut self.resources[handle.index()]
+    }
+
+    pub fn create_pass_node_builder(&mut self, insert_point: u32, name: &str) -> PassNodeBuilder {
+        PassNodeBuilder::new(insert_point, name, self)
+    }
+
+    pub(crate) fn create_resource_node(
+        &mut self,
+        resource_info: ResourceInfo,
+    ) -> TypeHandle<ResourceNode> {
+        let resource_handle = resource_info.handle.clone();
+        let version = resource_info.version();
+
+        let handle = TypeHandle::new(self.resource_nodes.len());
+
+        self.resource_nodes
+            .push(ResourceNode::new(handle.clone(), resource_handle, version));
+
+        handle
+    }
+
+    pub fn create<DescriptorType>(&mut self, name: &str, desc: DescriptorType) -> TypeHandle<ResourceNode>
+    where
+        DescriptorType: FGResourceDescriptor + TypeEquals<Other = <<DescriptorType as FGResourceDescriptor>::Resource as FGResource>::Descriptor>,
+    {
+        let resource_handle = TypeHandle::new(self.resources.len());
+
+        let resource: Resource = Resource::new(ResourceEntry::<DescriptorType::Resource>::new(
+            name,
+            resource_handle,
+            TypeEquals::same(desc),
+        ));
+
+        let resource_info = resource.get_info().clone();
+        self.resources.push(resource);
+
+        let handle = self.create_resource_node(resource_info);
+
+        handle
+    }
+}
