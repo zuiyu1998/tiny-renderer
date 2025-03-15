@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
 use crate::{
-    device::Device,
+    gfx_base::{
+        device::Device,
+        swap_chain::{SwapChain, SwapChainDescriptor},
+    },
     renderer::Renderer,
-    swap_chain::{SwapChain, SwapChainDescriptor},
 };
 
 pub struct InitializationGraphicContext {

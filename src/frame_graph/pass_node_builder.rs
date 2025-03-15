@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::{FGResource, FGResourceDescriptor, RendererError, TypeEquals, handle::TypeHandle};
+use crate::gfx_base::{
+    FGResource, FGResourceDescriptor, RendererError, TypeEquals, handle::TypeHandle,
+};
 
 use super::{FrameGraph, GraphResourceHandle, PassNode, ResourceNode, ResourceTable};
 

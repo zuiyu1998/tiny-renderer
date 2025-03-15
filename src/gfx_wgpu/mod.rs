@@ -1,6 +1,6 @@
 use wgpu::SurfaceTexture;
 
-use crate::{
+use crate::gfx_base::{
     device::DeviceTrait,
     render_pass::RenderPassDescriptor,
     swap_chain::{SwapChain, SwapChainDescriptor, SwapChainTrait},

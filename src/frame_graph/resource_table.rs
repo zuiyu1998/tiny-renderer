@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{
+use crate::gfx_base::{
     AnyFGResource, FGResource,
     device::Device,
     handle::{RawTypeHandle, TypeHandle},

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{AnyFGResourceDescriptor, FGResource, handle::TypeHandle};
+use crate::gfx_base::{AnyFGResourceDescriptor, FGResource, handle::TypeHandle};
 
 use super::pass_node::PassNode;
 

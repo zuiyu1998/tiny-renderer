@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
 use super::{
-    DevicePass, PassNode, Resource, ResourceInfo, ResourceNode, ResourceTable,
-    pass_node_builder::PassNodeBuilder,
+    pass_node_builder::PassNodeBuilder, DevicePass, PassNode, Resource, ResourceEntry, ResourceInfo, ResourceNode, ResourceTable
 };
-use crate::{
-    FGResource, FGResourceDescriptor, TypeEquals, device::Device, frame_graph::ResourceEntry,
-    handle::TypeHandle, transient_resource_cache::TransientResourceCache,
+use crate::gfx_base::{
+    FGResource, FGResourceDescriptor, TypeEquals, device::Device, handle::TypeHandle,
+    transient_resource_cache::TransientResourceCache,
 };
 
 pub struct ExecutingFrameGraph {

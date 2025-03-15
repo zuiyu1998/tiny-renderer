@@ -13,6 +13,6 @@ pub use resource::*;
 pub use resource_node::*;
 pub use resource_table::*;
 
-use crate::RendererError;
+use crate::gfx_base::RendererError;
 
 pub type DynRenderFn = dyn FnOnce(&mut ResourceTable) -> Result<(), RendererError>;

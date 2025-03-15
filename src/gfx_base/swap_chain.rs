@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor};
+use crate::gfx_base::{AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor};
 
 pub trait SwapChainTrait: 'static + Debug {
     fn present(&mut self);

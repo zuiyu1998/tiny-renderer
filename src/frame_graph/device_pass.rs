@@ -1,4 +1,4 @@
-use crate::{device::Device, handle::TypeHandle};
+use crate::gfx_base::{device::Device, handle::TypeHandle};
 
 use super::{DynRenderFn, FrameGraph, PassNode, Resource};
 

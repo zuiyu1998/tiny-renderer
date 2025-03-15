@@ -1,4 +1,4 @@
-use crate::handle::TypeHandle;
+use crate::gfx_base::handle::TypeHandle;
 
 use super::{DynRenderFn, FrameGraph, GraphResourceHandle, LogicPass, Resource, ResourceNode};
 

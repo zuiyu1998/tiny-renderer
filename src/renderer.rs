@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
-use crate::{
-    device::Device,
-    frame_graph::{CompiledFrameGraph, ExecutingFrameGraph, FrameGraph},
-    transient_resource_cache::TransientResourceCache,
-};
+use crate::gfx_base::{device::Device, transient_resource_cache::TransientResourceCache};
+
+use crate::frame_graph::{CompiledFrameGraph, ExecutingFrameGraph, FrameGraph};
 
 pub struct Renderer {
     compiled_fg: Option<CompiledFrameGraph>,
