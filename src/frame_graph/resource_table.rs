@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
-    AnyFGResource, device::Device, handle::RawTypeHandle,
+    AnyFGResource, FGResource,
+    device::Device,
+    handle::{RawTypeHandle, TypeHandle},
     transient_resource_cache::TransientResourceCache,
 };
 
@@ -14,6 +16,24 @@ pub struct ResourceTable {
 }
 
 impl ResourceTable {
+    pub fn get_resouce<ResourceType: FGResource>(
+        &self,
+        handle: &TypeHandle<Resource>,
+    ) -> Option<&ResourceType> {
+        self.resources
+            .get(&handle.raw_handle())
+            .and_then(|any| Some(ResourceType::borrow_resource(any)))
+    }
+
+    pub fn get_resouce_mut<ResourceType: FGResource>(
+        &mut self,
+        handle: &TypeHandle<Resource>,
+    ) -> Option<&mut ResourceType> {
+        self.resources
+            .get_mut(&handle.raw_handle())
+            .and_then(|any| Some(ResourceType::borrow_resource_mut(any)))
+    }
+
     #[allow(unused)]
     pub fn release_resources(
         &mut self,
@@ -21,6 +41,10 @@ impl ResourceTable {
         device: &Device,
         transient_resource_cache: &mut TransientResourceCache,
     ) {
+        if resource.get_info().imported {
+            return;
+        }
+
         let handle = resource.get_info().handle.raw_handle();
         let desc = resource.get_desc();
 

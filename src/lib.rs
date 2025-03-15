@@ -1,23 +1,40 @@
 pub mod device;
 pub mod frame_graph;
+pub mod gfx_wgpu;
+pub mod graphic_context;
 pub mod handle;
 pub mod renderer;
+pub mod swap_chain;
+pub mod texture;
 pub mod transient_resource_cache;
+pub mod render_pass;
 
 use std::{fmt::Debug, hash::Hash};
+
+use swap_chain::{SwapChain, SwapChainDescriptor};
+use texture::{Texture, TextureDescriptor};
 
 pub enum RendererError {}
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum AnyFGResourceDescriptor {}
+pub enum AnyFGResourceDescriptor {
+    Texture(TextureDescriptor),
+    SwapChain(SwapChainDescriptor),
+}
 
-#[derive(PartialEq, Eq, Debug)]
-pub enum AnyFGResource {}
+pub enum AnyFGResource {
+    OwnedTexture(Texture),
+    OwnedSwapChain(SwapChain),
+}
 
 pub trait FGResource: 'static + Debug {
     type Descriptor: FGResourceDescriptor;
 
     fn borrow_resource(res: &AnyFGResource) -> &Self;
+
+    fn borrow_resource_mut(res: &mut AnyFGResource) -> &mut Self;
+
+    fn get_desc(&self) -> &Self::Descriptor;
 }
 
 pub trait FGResourceDescriptor:

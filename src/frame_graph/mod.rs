@@ -15,4 +15,4 @@ pub use resource_table::*;
 
 use crate::RendererError;
 
-pub type DynRenderFn = dyn FnOnce(&ResourceTable) -> Result<(), RendererError>;
+pub type DynRenderFn = dyn FnOnce(&mut ResourceTable) -> Result<(), RendererError>;

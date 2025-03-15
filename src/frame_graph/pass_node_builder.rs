@@ -1,6 +1,8 @@
-use crate::{FGResource, FGResourceDescriptor, TypeEquals, handle::TypeHandle};
+use std::sync::Arc;
 
-use super::{FrameGraph, PassNode, ResourceNode};
+use crate::{FGResource, FGResourceDescriptor, RendererError, TypeEquals, handle::TypeHandle};
+
+use super::{FrameGraph, GraphResourceHandle, PassNode, ResourceNode, ResourceTable};
 
 pub struct PassNodeBuilder<'a> {
     graph: &'a mut FrameGraph,
@@ -14,6 +16,20 @@ impl Drop for PassNodeBuilder<'_> {
 }
 
 impl<'a> PassNodeBuilder<'a> {
+    pub fn render(
+        mut self,
+        render: impl (FnOnce(&mut ResourceTable) -> Result<(), RendererError>) + 'static,
+    ) {
+        let prev = self
+            .pass_node
+            .as_mut()
+            .unwrap()
+            .render_fn
+            .replace(Box::new(render));
+
+        assert!(prev.is_none());
+    }
+
     pub fn new(insert_point: u32, name: &str, graph: &'a mut FrameGraph) -> Self {
         let handle = TypeHandle::new(graph.pass_nodes.len());
         Self {
@@ -24,29 +40,39 @@ impl<'a> PassNodeBuilder<'a> {
 
     fn build(&mut self) {
         let pass_node = self.pass_node.take().unwrap();
-
-        assert!(pass_node.render_fn.is_some());
-
         self.graph.pass_nodes.push(pass_node);
     }
 
+    pub fn imported<ResourceType>(
+        &mut self,
+        name: &str,
+        resouce: Arc<ResourceType>,
+    ) -> GraphResourceHandle
+    where
+        ResourceType: FGResource,
+    {
+        self.graph.imported(name, resouce)
+    }
 
     pub fn create<DescriptorType>(
         &mut self,
         name: &str,
         desc: DescriptorType,
-    ) -> TypeHandle<ResourceNode>
+    ) -> GraphResourceHandle
     where
     DescriptorType: FGResourceDescriptor + TypeEquals<Other = <<DescriptorType as FGResourceDescriptor>::Resource as FGResource>::Descriptor>,
     {
         self.graph.create(name, desc)
     }
 
-    pub fn read(&mut self, input_handle: TypeHandle<ResourceNode>) -> TypeHandle<ResourceNode> {
-        self.pass_node.as_mut().unwrap().read(input_handle)
+    pub fn read(&mut self, input_handle: TypeHandle<ResourceNode>) -> GraphResourceHandle {
+        self.pass_node
+            .as_mut()
+            .unwrap()
+            .read(&self.graph, input_handle)
     }
 
-    pub fn write(&mut self, out_handle: TypeHandle<ResourceNode>) -> TypeHandle<ResourceNode> {
+    pub fn write(&mut self, out_handle: TypeHandle<ResourceNode>) -> GraphResourceHandle {
         self.pass_node
             .as_mut()
             .unwrap()

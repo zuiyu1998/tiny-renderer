@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     device::Device,
     frame_graph::{CompiledFrameGraph, ExecutingFrameGraph, FrameGraph},
@@ -6,11 +8,19 @@ use crate::{
 
 pub struct Renderer {
     compiled_fg: Option<CompiledFrameGraph>,
-    device: Device,
+    device: Arc<Device>,
     transient_resource_cache: TransientResourceCache,
 }
 
 impl Renderer {
+    pub fn new(device: Arc<Device>) -> Self {
+        Self {
+            compiled_fg: None,
+            device,
+            transient_resource_cache: Default::default(),
+        }
+    }
+
     pub fn draw_frame(&mut self) {
         let fg = match self.compiled_fg.take() {
             Some(fg) => fg,
@@ -22,8 +32,8 @@ impl Renderer {
         let mut executing_rg: ExecutingFrameGraph;
         {
             executing_rg = fg.begin_execute(&self.device, &mut self.transient_resource_cache);
-        
-            executing_rg.execute();
+
+            executing_rg.execute(&self.device);
         }
     }
 

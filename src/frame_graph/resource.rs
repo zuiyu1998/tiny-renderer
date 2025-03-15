@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{AnyFGResourceDescriptor, FGResource, handle::TypeHandle};
 
 use super::pass_node::PassNode;
@@ -42,6 +44,8 @@ pub struct ResourceInfo {
     pub first_pass_node_handle: Option<TypeHandle<PassNode>>,
     ///最后使用此资源的渲染节点
     pub last_pass_node_handle: Option<TypeHandle<PassNode>>,
+    ///是否导入
+    pub imported: bool,
 }
 
 impl ResourceInfo {
@@ -52,6 +56,7 @@ impl ResourceInfo {
             version: 0,
             first_pass_node_handle: None,
             last_pass_node_handle: None,
+            imported: false,
         }
     }
 }
@@ -74,16 +79,43 @@ impl ResourceInfo {
     }
 }
 
+pub enum ResourceEntryState<ResourceType: FGResource> {
+    Created(ResourceType::Descriptor),
+    Imported {
+        resource: Arc<ResourceType>,
+        desc: ResourceType::Descriptor,
+    },
+}
+
 pub struct ResourceEntry<ResourceType: FGResource> {
-    desc: ResourceType::Descriptor,
+    state: ResourceEntryState<ResourceType>,
     info: ResourceInfo,
 }
 
 impl<ResourceType: FGResource> ResourceEntry<ResourceType> {
-    pub fn new(name: &str, handle: TypeHandle<Resource>, desc: ResourceType::Descriptor) -> Self {
+    pub fn new_desc(
+        name: &str,
+        handle: TypeHandle<Resource>,
+        desc: ResourceType::Descriptor,
+    ) -> Self {
         ResourceEntry {
-            desc,
+            state: ResourceEntryState::Created(desc),
             info: ResourceInfo::new(name, handle),
+        }
+    }
+
+    pub fn new_resource(
+        name: &str,
+        handle: TypeHandle<Resource>,
+        resource: Arc<ResourceType>,
+    ) -> Self {
+        let desc = resource.get_desc().clone();
+        let mut info = ResourceInfo::new(name, handle);
+        info.imported = true;
+
+        ResourceEntry {
+            state: ResourceEntryState::Imported { resource, desc },
+            info,
         }
     }
 }
@@ -101,6 +133,9 @@ where
     }
 
     fn get_desc(&self) -> AnyFGResourceDescriptor {
-        self.desc.clone().into()
+        match &self.state {
+            ResourceEntryState::Created(desc) => desc.clone().into(),
+            ResourceEntryState::Imported { desc, .. } => desc.clone().into(),
+        }
     }
 }

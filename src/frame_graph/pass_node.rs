@@ -1,6 +1,6 @@
 use crate::handle::TypeHandle;
 
-use super::{DynRenderFn, FrameGraph, LogicPass, Resource, ResourceNode};
+use super::{DynRenderFn, FrameGraph, GraphResourceHandle, LogicPass, Resource, ResourceNode};
 
 pub struct PassNode {
     ///唯一的节点名称
@@ -18,18 +18,20 @@ pub struct PassNode {
 }
 
 impl PassNode {
-
     pub(crate) fn take(&mut self) -> LogicPass {
         let resource_release_array = self.resource_release_array.clone();
         let render_fn = self.render_fn.take();
-        LogicPass { render_fn, resource_release_array }
+        LogicPass {
+            render_fn,
+            resource_release_array,
+        }
     }
 
     pub fn write(
         &mut self,
         graph: &mut FrameGraph,
         out_handle: TypeHandle<ResourceNode>,
-    ) -> TypeHandle<ResourceNode> {
+    ) -> GraphResourceHandle {
         let resource_handle = graph.get_resource_node(&out_handle).resource_handle.clone();
         let resource = graph.get_resource_mut(&resource_handle);
         resource.get_info_mut().new_version();
@@ -42,15 +44,30 @@ impl PassNode {
 
         self.writes.push(new_resource_node_handle.clone());
 
-        new_resource_node_handle
+        GraphResourceHandle {
+            resource_node_handle: new_resource_node_handle,
+            resource_handle,
+        }
     }
 
-    pub fn read(&mut self, input_handle: TypeHandle<ResourceNode>) -> TypeHandle<ResourceNode> {
+    pub fn read(
+        &mut self,
+        graph: &FrameGraph,
+        input_handle: TypeHandle<ResourceNode>,
+    ) -> GraphResourceHandle {
         if !self.reads.contains(&input_handle) {
             self.reads.push(input_handle.clone());
         }
 
-        input_handle
+        let resource_handle = graph
+            .get_resource_node(&input_handle)
+            .resource_handle
+            .clone();
+
+        GraphResourceHandle {
+            resource_node_handle: input_handle,
+            resource_handle,
+        }
     }
 
     pub fn new(insert_point: u32, name: &str, handle: TypeHandle<PassNode>) -> Self {

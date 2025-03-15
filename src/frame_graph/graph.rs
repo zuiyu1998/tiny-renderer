@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::{
     DevicePass, PassNode, Resource, ResourceInfo, ResourceNode, ResourceTable,
     pass_node_builder::PassNodeBuilder,
@@ -13,11 +15,11 @@ pub struct ExecutingFrameGraph {
 }
 
 impl ExecutingFrameGraph {
-    pub fn execute(&mut self) {
+    pub fn execute(&mut self, device: &Device) {
         for i in 0..self.device_passs.len() {
             let device_pass = &mut self.device_passs[i];
 
-            device_pass.execute();
+            device_pass.execute(device);
         }
     }
 
@@ -144,6 +146,11 @@ impl FrameGraph {
     }
 }
 
+pub struct GraphResourceHandle {
+    pub resource_node_handle: TypeHandle<ResourceNode>,
+    pub resource_handle: TypeHandle<Resource>,
+}
+
 impl FrameGraph {
     pub fn get_pass_node_mut(&mut self, handle: &TypeHandle<PassNode>) -> &mut PassNode {
         &mut self.pass_nodes[handle.index()]
@@ -190,16 +197,19 @@ impl FrameGraph {
         handle
     }
 
-    pub fn create<DescriptorType>(&mut self, name: &str, desc: DescriptorType) -> TypeHandle<ResourceNode>
+    pub fn imported<ResourceType>(
+        &mut self,
+        name: &str,
+        resouce: Arc<ResourceType>,
+    ) -> GraphResourceHandle
     where
-        DescriptorType: FGResourceDescriptor + TypeEquals<Other = <<DescriptorType as FGResourceDescriptor>::Resource as FGResource>::Descriptor>,
+        ResourceType: FGResource,
     {
         let resource_handle = TypeHandle::new(self.resources.len());
-
-        let resource: Resource = Resource::new(ResourceEntry::<DescriptorType::Resource>::new(
+        let resource: Resource = Resource::new(ResourceEntry::<ResourceType>::new_resource(
             name,
-            resource_handle,
-            TypeEquals::same(desc),
+            resource_handle.clone(),
+            resouce,
         ));
 
         let resource_info = resource.get_info().clone();
@@ -207,6 +217,33 @@ impl FrameGraph {
 
         let handle = self.create_resource_node(resource_info);
 
-        handle
+        GraphResourceHandle {
+            resource_node_handle: handle,
+            resource_handle,
+        }
+    }
+
+    pub fn create<DescriptorType>(&mut self, name: &str, desc: DescriptorType) -> GraphResourceHandle
+    where
+        DescriptorType: FGResourceDescriptor + TypeEquals<Other = <<DescriptorType as FGResourceDescriptor>::Resource as FGResource>::Descriptor>,
+    {
+        let resource_handle = TypeHandle::new(self.resources.len());
+
+        let resource: Resource =
+            Resource::new(ResourceEntry::<DescriptorType::Resource>::new_desc(
+                name,
+                resource_handle.clone(),
+                TypeEquals::same(desc),
+            ));
+
+        let resource_info = resource.get_info().clone();
+        self.resources.push(resource);
+
+        let handle = self.create_resource_node(resource_info);
+
+        GraphResourceHandle {
+            resource_node_handle: handle,
+            resource_handle,
+        }
     }
 }

@@ -1,4 +1,4 @@
-use crate::handle::TypeHandle;
+use crate::{device::Device, handle::TypeHandle};
 
 use super::{DynRenderFn, FrameGraph, PassNode, Resource};
 
@@ -13,8 +13,8 @@ impl DevicePass {
         self.logic_pass = pass_node.take();
     }
 
-    pub fn execute(&mut self) {
-        
+    pub fn execute(&mut self, device: &Device) {
+        println!("[DevicePass] execute")
     }
 }
 
