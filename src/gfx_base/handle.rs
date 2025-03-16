@@ -1,4 +1,4 @@
-use std::{hash::Hash, marker::PhantomData};
+use std::{fmt::Debug, hash::Hash, marker::PhantomData};
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct RawTypeHandle {
@@ -9,6 +9,15 @@ pub struct RawTypeHandle {
 pub struct TypeHandle<T> {
     index: usize,
     _marker: PhantomData<T>,
+}
+
+impl<T> Debug for TypeHandle<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TypeHandle")
+            .field("index", &self.index)
+            .field("_marker", &self._marker)
+            .finish()
+    }
 }
 
 impl<T> PartialEq for TypeHandle<T> {

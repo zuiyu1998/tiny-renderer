@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::gfx_base::{AnyFGResource, AnyFGResourceDescriptor};
+use crate::frame_graph::{AnyFGResource, AnyFGResourceDescriptor};
 
 #[derive(Default)]
 pub struct TransientResourceCache {

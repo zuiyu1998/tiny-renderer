@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::gfx_base::{AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor};
+use crate::frame_graph::{AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor};
 
 pub trait TextureTrait: 'static + Debug {}
 

@@ -1,6 +1,8 @@
-use crate::gfx_base::handle::TypeHandle;
+use crate::gfx_base::{
+    color_attachment::ColorAttachment, handle::TypeHandle, render_context::DynRenderFn,
+};
 
-use super::{DynRenderFn, FrameGraph, GraphResourceHandle, LogicPass, Resource, ResourceNode};
+use super::{FrameGraph, GraphResourceHandle, LogicPass, Resource, ResourceNode};
 
 pub struct PassNode {
     ///唯一的节点名称
@@ -15,6 +17,9 @@ pub struct PassNode {
     pub resource_request_array: Vec<TypeHandle<Resource>>,
     ///使用资源的释放生命周期
     pub resource_release_array: Vec<TypeHandle<Resource>>,
+
+    //render pass 配置
+    pub color_attachments: Vec<ColorAttachment>,
 }
 
 impl PassNode {
@@ -25,6 +30,10 @@ impl PassNode {
             render_fn,
             resource_release_array,
         }
+    }
+
+    pub fn add_attachment(&mut self, color_attachment: ColorAttachment) {
+        self.color_attachments.push(color_attachment);
     }
 
     pub fn write(
@@ -47,6 +56,26 @@ impl PassNode {
         GraphResourceHandle {
             resource_node_handle: new_resource_node_handle,
             resource_handle,
+        }
+    }
+
+    pub fn read_from_board(
+        &mut self,
+        graph: &FrameGraph,
+        name: &str,
+    ) -> Option<GraphResourceHandle> {
+        if let Some(handle) = graph
+            .get_resource_board()
+            .get(name)
+            .map(|handle| handle.clone())
+        {
+            if !self.reads.contains(&handle.resource_node_handle) {
+                self.reads.push(handle.resource_node_handle.clone());
+            }
+
+            Some(handle)
+        } else {
+            None
         }
     }
 
@@ -80,6 +109,7 @@ impl PassNode {
             insert_point,
             resource_request_array: vec![],
             resource_release_array: vec![],
+            color_attachments: vec![],
         }
     }
 }

@@ -1,10 +1,12 @@
-use std::sync::Arc;
-
-use crate::gfx_base::{
-    FGResource, FGResourceDescriptor, RendererError, TypeEquals, handle::TypeHandle,
+use crate::{
+    RendererError,
+    gfx_base::{color_attachment::ColorAttachment, handle::TypeHandle, render_context::RenderApi},
 };
 
-use super::{FrameGraph, GraphResourceHandle, PassNode, ResourceNode, ResourceTable};
+use super::{
+    FGResource, FGResourceDescriptor, FrameGraph, GraphResourceHandle, ImportedResource, PassNode,
+    ResourceNode, TypeEquals,
+};
 
 pub struct PassNodeBuilder<'a> {
     graph: &'a mut FrameGraph,
@@ -18,9 +20,16 @@ impl Drop for PassNodeBuilder<'_> {
 }
 
 impl<'a> PassNodeBuilder<'a> {
+    pub fn add_attachment(&mut self, color_attachment: ColorAttachment) {
+        self.pass_node
+            .as_mut()
+            .unwrap()
+            .add_attachment(color_attachment);
+    }
+
     pub fn render(
         mut self,
-        render: impl (FnOnce(&mut ResourceTable) -> Result<(), RendererError>) + 'static,
+        render: impl (FnOnce(&mut RenderApi) -> Result<(), RendererError>) + 'static,
     ) {
         let prev = self
             .pass_node
@@ -48,12 +57,13 @@ impl<'a> PassNodeBuilder<'a> {
     pub fn imported<ResourceType>(
         &mut self,
         name: &str,
-        resouce: Arc<ResourceType>,
+        imported_resource: ImportedResource,
+        desc: ResourceType::Descriptor,
     ) -> GraphResourceHandle
     where
         ResourceType: FGResource,
     {
-        self.graph.imported(name, resouce)
+        self.graph.imported::<ResourceType>(name, imported_resource, desc)
     }
 
     pub fn create<DescriptorType>(
@@ -65,6 +75,13 @@ impl<'a> PassNodeBuilder<'a> {
     DescriptorType: FGResourceDescriptor + TypeEquals<Other = <<DescriptorType as FGResourceDescriptor>::Resource as FGResource>::Descriptor>,
     {
         self.graph.create(name, desc)
+    }
+
+    pub fn read_from_board(&mut self, name: &str) -> Option<GraphResourceHandle> {
+        self.pass_node
+            .as_mut()
+            .unwrap()
+            .read_from_board(&self.graph, name)
     }
 
     pub fn read(&mut self, input_handle: TypeHandle<ResourceNode>) -> GraphResourceHandle {

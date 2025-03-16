@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::{
     gfx_base::{
+        color_attachment::{ColorAttachment, ColorAttachmentView},
         device::Device,
-        swap_chain::{SwapChain, SwapChainDescriptor},
     },
     renderer::Renderer,
 };
@@ -17,21 +17,12 @@ impl InitializationGraphicContext {
     fn render(&mut self) {
         self.renderer.prepare_frame(|fg| {
             let mut builder = fg.create_pass_node_builder(0, "final");
-            let swap_chain = builder.create("swap_chain", SwapChainDescriptor);
 
-            let new_swap_chain = builder.write(swap_chain.resource_node_handle);
+            let new_swap_chain = builder.read_from_board("swap_chain").unwrap();
 
-            let new_swap_chain_resource_handle = new_swap_chain.resource_handle.clone();
-
-            builder.render(move |table| {
-                if let Some(swap_chain) =
-                    table.get_resouce_mut::<SwapChain>(&new_swap_chain_resource_handle)
-                {
-                    swap_chain.present();
-                }
-
-                Ok(())
-            })
+            builder.add_attachment(ColorAttachment {
+                view: ColorAttachmentView::Uninitialization(new_swap_chain.resource_handle.clone()),
+            });
         });
         self.renderer.draw_frame();
     }

@@ -1,31 +1,81 @@
 use std::sync::Arc;
 
 use super::{
-    pass_node_builder::PassNodeBuilder, DevicePass, PassNode, Resource, ResourceEntry, ResourceInfo, ResourceNode, ResourceTable
+    DevicePass, ImportedResource, PassNode, Resource, ResourceBoard, ResourceInfo, ResourceNode,
+    SwapChain, SwapChainDescriptor, Texture, TextureDescriptor, pass_node_builder::PassNodeBuilder,
 };
 use crate::gfx_base::{
-    FGResource, FGResourceDescriptor, TypeEquals, device::Device, handle::TypeHandle,
-    transient_resource_cache::TransientResourceCache,
+    device::Device, handle::TypeHandle, render_context::RenderContext,
+    resource_table::ResourceTable, transient_resource_cache::TransientResourceCache,
 };
+
+use std::{fmt::Debug, hash::Hash};
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum AnyFGResourceDescriptor {
+    Texture(TextureDescriptor),
+    SwapChain(SwapChainDescriptor),
+}
+
+pub enum AnyFGResource {
+    OwnedTexture(Texture),
+    ImportedSwapChain(Arc<SwapChain>),
+}
+
+pub trait FGResource: 'static + Debug {
+    type Descriptor: FGResourceDescriptor;
+
+    fn borrow_resource(res: &AnyFGResource) -> &Self;
+
+    fn borrow_resource_mut(res: &mut AnyFGResource) -> &mut Self;
+
+    fn get_desc(&self) -> &Self::Descriptor;
+}
+
+pub trait FGResourceDescriptor:
+    'static + Clone + Hash + Eq + Debug + Into<AnyFGResourceDescriptor>
+{
+    type Resource: FGResource;
+}
+
+pub trait TypeEquals {
+    type Other;
+    fn same(value: Self) -> Self::Other;
+}
+
+impl<T: Sized> TypeEquals for T {
+    type Other = Self;
+    fn same(value: Self) -> Self::Other {
+        value
+    }
+}
 
 pub struct ExecutingFrameGraph {
     resource_table: ResourceTable,
     device_passs: Vec<DevicePass>,
+    resource_board: ResourceBoard,
 }
 
 impl ExecutingFrameGraph {
     pub fn execute(&mut self, device: &Device) {
+        let mut render_context =
+            RenderContext::new(&mut self.resource_table, device, &self.resource_board);
+
         for i in 0..self.device_passs.len() {
             let device_pass = &mut self.device_passs[i];
-
-            device_pass.execute(device);
+            device_pass.execute(&mut render_context);
         }
     }
 
-    pub fn new(resource_table: ResourceTable, device_passs: Vec<DevicePass>) -> Self {
+    pub fn new(
+        resource_table: ResourceTable,
+        device_passs: Vec<DevicePass>,
+        resource_board: ResourceBoard,
+    ) -> Self {
         ExecutingFrameGraph {
             resource_table,
             device_passs,
+            resource_board,
         }
     }
 }
@@ -69,11 +119,16 @@ impl CompiledFrameGraph {
             }
 
             let mut device_pass = DevicePass::default();
+
             device_pass.extra(&mut self.fg, pass_node_handle);
             self.device_passs.push(device_pass);
         }
 
-        ExecutingFrameGraph::new(self.resource_table, self.device_passs)
+        ExecutingFrameGraph::new(
+            self.resource_table,
+            self.device_passs,
+            self.fg.resource_board,
+        )
     }
 }
 
@@ -82,6 +137,7 @@ pub struct FrameGraph {
     pub(crate) pass_nodes: Vec<PassNode>,
     resources: Vec<Resource>,
     resource_nodes: Vec<ResourceNode>,
+    resource_board: ResourceBoard,
 }
 
 impl FrameGraph {
@@ -145,15 +201,21 @@ impl FrameGraph {
     }
 }
 
+#[derive(Clone)]
 pub struct GraphResourceHandle {
     pub resource_node_handle: TypeHandle<ResourceNode>,
     pub resource_handle: TypeHandle<Resource>,
 }
 
 impl FrameGraph {
+    pub fn get_resource_board(&self) -> &ResourceBoard {
+        &self.resource_board
+    }
+
     pub fn get_pass_node_mut(&mut self, handle: &TypeHandle<PassNode>) -> &mut PassNode {
         &mut self.pass_nodes[handle.index()]
     }
+
     pub fn get_pass_node(&self, handle: &TypeHandle<PassNode>) -> &PassNode {
         &self.pass_nodes[handle.index()]
     }
@@ -199,27 +261,33 @@ impl FrameGraph {
     pub fn imported<ResourceType>(
         &mut self,
         name: &str,
-        resouce: Arc<ResourceType>,
+        imported_resource: ImportedResource,
+        desc: ResourceType::Descriptor,
     ) -> GraphResourceHandle
     where
         ResourceType: FGResource,
     {
         let resource_handle = TypeHandle::new(self.resources.len());
-        let resource: Resource = Resource::new(ResourceEntry::<ResourceType>::new_resource(
+        let resource: Resource = Resource::new_imported::<ResourceType>(
             name,
             resource_handle.clone(),
-            resouce,
-        ));
+            desc,
+            imported_resource,
+        );
 
         let resource_info = resource.get_info().clone();
         self.resources.push(resource);
 
         let handle = self.create_resource_node(resource_info);
 
-        GraphResourceHandle {
+        let handle = GraphResourceHandle {
             resource_node_handle: handle,
             resource_handle,
-        }
+        };
+
+        self.resource_board.put(name, handle.clone());
+
+        handle
     }
 
     pub fn create<DescriptorType>(&mut self, name: &str, desc: DescriptorType) -> GraphResourceHandle
@@ -228,12 +296,11 @@ impl FrameGraph {
     {
         let resource_handle = TypeHandle::new(self.resources.len());
 
-        let resource: Resource =
-            Resource::new(ResourceEntry::<DescriptorType::Resource>::new_desc(
-                name,
-                resource_handle.clone(),
-                TypeEquals::same(desc),
-            ));
+        let resource: Resource = Resource::new_created::<DescriptorType::Resource>(
+            name,
+            resource_handle.clone(),
+            TypeEquals::same(desc),
+        );
 
         let resource_info = resource.get_info().clone();
         self.resources.push(resource);

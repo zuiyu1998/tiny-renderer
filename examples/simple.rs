@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use tiny_renderer::{
-    device::Device, gfx_wgpu::WgpuDevice, graphic_context::GraphicContext, renderer::Renderer,
+    gfx_base::device::Device, gfx_wgpu::WgpuDevice, graphic_context::GraphicContext,
+    renderer::Renderer,
 };
 use winit::{
     application::ApplicationHandler,
@@ -50,7 +51,7 @@ impl State {
 
         surface.configure(&device, &surface_config);
 
-        let device = WgpuDevice::new(device, surface, surface_format);
+        let device = WgpuDevice::new(device, surface, surface_format, queue);
         let device = Arc::new(Device::new(device));
         let renderer = Renderer::new(device.clone());
 

@@ -1,9 +1,13 @@
 use std::fmt::Debug;
 
-use crate::gfx_base::{AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor};
+use wgpu::TextureView;
+
+use crate::frame_graph::{AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor};
 
 pub trait SwapChainTrait: 'static + Debug {
-    fn present(&mut self);
+    fn present(&self);
+
+    fn get_texture_view(&self) -> TextureView;
 }
 
 #[derive(Debug)]
@@ -20,8 +24,12 @@ impl SwapChain {
         }
     }
 
-    pub fn present(&mut self) {
+    pub fn present(&self) {
         self.boxed.present();
+    }
+
+    pub fn get_texture_view(&self) -> TextureView {
+        self.boxed.get_texture_view()
     }
 }
 
@@ -30,7 +38,7 @@ impl FGResource for SwapChain {
 
     fn borrow_resource(res: &AnyFGResource) -> &Self {
         match res {
-            AnyFGResource::OwnedSwapChain(res) => res,
+            AnyFGResource::ImportedSwapChain(res) => res,
             _ => {
                 unimplemented!()
             }
@@ -39,7 +47,9 @@ impl FGResource for SwapChain {
 
     fn borrow_resource_mut(res: &mut AnyFGResource) -> &mut Self {
         match res {
-            AnyFGResource::OwnedSwapChain(res) => res,
+            AnyFGResource::ImportedSwapChain(_res) => {
+                unimplemented!()
+            }
             _ => {
                 unimplemented!()
             }
@@ -52,7 +62,7 @@ impl FGResource for SwapChain {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct SwapChainDescriptor;
+pub struct SwapChainDescriptor {}
 
 impl From<SwapChainDescriptor> for AnyFGResourceDescriptor {
     fn from(value: SwapChainDescriptor) -> Self {
