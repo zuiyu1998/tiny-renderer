@@ -1,8 +1,9 @@
 use std::fmt::Debug;
 
-use wgpu::TextureView;
-
-use crate::frame_graph::{AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor};
+use crate::{
+    frame_graph::{AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor},
+    gfx_base::texture_view::TextureView,
+};
 
 pub trait SwapChainTrait: 'static + Debug {
     fn present(&self);

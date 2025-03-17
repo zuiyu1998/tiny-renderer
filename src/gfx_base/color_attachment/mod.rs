@@ -1,16 +1,20 @@
-use wgpu::TextureView;
 
 use crate::frame_graph::{Resource, SwapChain};
 
-use super::{handle::TypeHandle, render_context::RenderContext};
+use super::{handle::TypeHandle, render_context::RenderContext, texture_view::TextureView};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum ColorAttachmentView {
     Uninitialization(TypeHandle<Resource>),
     Initialization(TextureView),
 }
 
 impl ColorAttachmentView {
+
+    pub fn new(handle: TypeHandle<Resource>) -> Self {
+        ColorAttachmentView::Uninitialization(handle)
+    }
+
     pub fn get_texture_view(&self) -> &TextureView {
         match self {
             ColorAttachmentView::Uninitialization(_) => {
@@ -21,7 +25,7 @@ impl ColorAttachmentView {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ColorAttachment {
     pub view: ColorAttachmentView,
 }

@@ -8,8 +8,14 @@ use crate::{
         command_buffer::{CommandBuffer, CommandBufferTrait},
         device::DeviceTrait,
         render_pass::{RenderPass, RenderPassDescriptor, RenderPassTrait},
+        texture_view::{TextureView, TextureViewTrait},
     },
 };
+
+#[derive(Debug)]
+pub struct WgpuTextView(wgpu::TextureView);
+
+impl TextureViewTrait for WgpuTextView {}
 
 pub struct WgpuCommandBuffer(wgpu::CommandBuffer);
 
@@ -69,16 +75,18 @@ impl SwapChainTrait for WgpuSwapChain {
         }
     }
 
-    fn get_texture_view(&self) -> wgpu::TextureView {
+    fn get_texture_view(&self) -> TextureView {
         let guard = self.surface_texture.lock().unwrap();
-        guard
+        let view = guard
             .as_ref()
             .unwrap()
             .texture
             .create_view(&wgpu::TextureViewDescriptor {
                 format: Some(self.surface_format.add_srgb_suffix()),
                 ..Default::default()
-            })
+            });
+
+        TextureView::new(WgpuTextView(view))
     }
 }
 
@@ -101,8 +109,14 @@ impl DeviceTrait for WgpuDevice {
         let mut color_attachments = vec![];
 
         for color_attachment in desc.color_attachments.iter() {
+            let texture_view = color_attachment
+                .view
+                .get_texture_view()
+                .downcast_ref::<WgpuTextView>()
+                .unwrap();
+
             color_attachments.push(Some(wgpu::RenderPassColorAttachment {
-                view: color_attachment.view.get_texture_view(),
+                view: &texture_view.0,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),

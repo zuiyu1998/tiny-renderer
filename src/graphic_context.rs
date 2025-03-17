@@ -21,7 +21,7 @@ impl InitializationGraphicContext {
             let new_swap_chain = builder.read_from_board("swap_chain").unwrap();
 
             builder.add_attachment(ColorAttachment {
-                view: ColorAttachmentView::Uninitialization(new_swap_chain.resource_handle.clone()),
+                view: ColorAttachmentView::new(new_swap_chain.resource_handle.clone()),
             });
         });
         self.renderer.draw_frame();

@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 
 use super::{
-    color_attachment::ColorAttachment, command_buffer::CommandBuffer, render_context::RenderContext, resource_table::ResourceTable
+    color_attachment::ColorAttachment, command_buffer::CommandBuffer, render_context::RenderContext,
 };
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct RenderPassDescriptor {
     pub color_attachments: Vec<ColorAttachment>,
 }

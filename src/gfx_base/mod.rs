@@ -6,3 +6,4 @@ pub mod render_context;
 pub mod render_pass;
 pub mod resource_table;
 pub mod transient_resource_cache;
+pub mod texture_view;

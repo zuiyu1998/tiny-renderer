@@ -1,6 +1,6 @@
 use crate::{
     RendererError,
-    frame_graph::{Resource, ResourceBoard, FGResource},
+    frame_graph::{FGResource, Resource, ResourceBoard},
     gfx_base::{device::Device, handle::TypeHandle},
 };
 
@@ -17,6 +17,10 @@ impl<'a, 'b> RenderApi<'a, 'b>
 where
     'b: 'a,
 {
+    pub fn get_render_pass_mut(&mut self) -> &mut RenderPass {
+        &mut self.pass
+    }
+
     pub fn device(&self) -> &Device {
         self.context.device()
     }

@@ -80,10 +80,6 @@ impl ExecutingFrameGraph {
     }
 }
 
-pub struct FrameGraphExecutionParams<'a> {
-    device: &'a Device,
-}
-
 pub struct CompiledFrameGraph {
     fg: FrameGraph,
     resource_table: ResourceTable,
