@@ -24,14 +24,14 @@ impl InitializationGraphicContext {
             let new_swap_chain = builder.read_from_board::<SwapChain>("swap_chain").unwrap();
 
             builder.add_attachment(ColorAttachment {
-                view: ColorAttachmentView::new(new_swap_chain.handle().resource_handle.clone()),
+                view: ColorAttachmentView::new(new_swap_chain.resource_handle()),
             });
 
             let pipeline_handle_clone = pipeline_handle.clone();
-            builder.render(move |api| {
+            builder.render(move |render_pass, api| {
                 let pipeline = api.get_render_pipeline(&pipeline_handle_clone);
-                api.get_render_pass_mut().set_render_pipeline(&pipeline);
-                api.get_render_pass_mut().draw(0..3, 0..1);
+                render_pass.set_render_pipeline(&pipeline);
+                render_pass.draw(0..3, 0..1);
 
                 Ok(())
             });

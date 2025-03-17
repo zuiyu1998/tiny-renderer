@@ -21,39 +21,37 @@ pub struct WgpuTextView(wgpu::TextureView);
 
 impl TextureViewTrait for WgpuTextView {}
 
-pub struct WgpuCommandBuffer(wgpu::CommandBuffer);
+pub struct WgpuCommandBuffer(Option<wgpu::CommandBuffer>);
 
-impl CommandBufferTrait for WgpuCommandBuffer {}
+impl CommandBufferTrait for WgpuCommandBuffer {
+    fn finish(&mut self, render_pass: RenderPass) {
+        let render_pass: Box<WgpuRenderPass> = render_pass.downcast().unwrap();
+
+        drop(render_pass.render_pass);
+
+        let command_buffer = render_pass.encoder.finish();
+
+        self.0 = Some(command_buffer);
+    }
+}
 
 #[derive(Debug)]
 pub struct WgpuRenderPass {
-    render_pass: Option<wgpu::RenderPass<'static>>,
-    encoder: Option<wgpu::CommandEncoder>,
+    render_pass: wgpu::RenderPass<'static>,
+    encoder: wgpu::CommandEncoder,
 }
 
 impl RenderPassTrait for WgpuRenderPass {
-    fn finish(&mut self) -> CommandBuffer {
-        let render_pass = self.render_pass.take().unwrap();
-        drop(render_pass);
-
-        let encoder = self.encoder.take().unwrap();
-        CommandBuffer::new(WgpuCommandBuffer(encoder.finish()))
-    }
-
     fn set_render_pipeline(&mut self, render_pipeline: &RenderPipeline) {
         let render_pipeline = render_pipeline
             .downcast_ref::<WgpuRenderPipeline>()
             .unwrap();
 
-        if let Some(render_pass) = self.render_pass.as_mut() {
-            render_pass.set_pipeline(&render_pipeline.0);
-        }
+        self.render_pass.set_pipeline(&render_pipeline.0);
     }
 
     fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>) {
-        if let Some(render_pass) = self.render_pass.as_mut() {
-            render_pass.draw(vertices, instances);
-        }
+        self.render_pass.draw(vertices, instances);
     }
 }
 
@@ -157,8 +155,8 @@ impl DeviceTrait for WgpuDevice {
         let render_pass = render_pass.forget_lifetime();
 
         RenderPass::new(WgpuRenderPass {
-            render_pass: Some(render_pass),
-            encoder: Some(encoder),
+            render_pass,
+            encoder,
         })
     }
 
@@ -168,8 +166,7 @@ impl DeviceTrait for WgpuDevice {
             .map(|command_buffer| {
                 let wgpu_command_buffer: Box<WgpuCommandBuffer> =
                     command_buffer.downcast().unwrap();
-
-                wgpu_command_buffer.0
+                wgpu_command_buffer.0.unwrap()
             })
             .collect::<Vec<wgpu::CommandBuffer>>();
 
@@ -240,5 +237,9 @@ impl DeviceTrait for WgpuDevice {
             });
 
         RenderPipeline::new(WgpuRenderPipeline::new(render_pipeline))
+    }
+
+    fn create_command_buffer(&self) -> CommandBuffer {
+        CommandBuffer::new(WgpuCommandBuffer(None))
     }
 }

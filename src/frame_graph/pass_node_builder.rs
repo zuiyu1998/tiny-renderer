@@ -6,13 +6,13 @@ use crate::{
         color_attachment::ColorAttachment,
         handle::TypeHandle,
         pipeline::{RenderPipeline, RenderPipelineDescriptor},
-        render_context::RenderApi,
+        render_pass::RenderPass,
     },
 };
 
 use super::{
-    FGResource, FGResourceDescriptor, FrameGraph, GpuRead, GpuWrite, GraphResourceHandle,
-    ImportToFrameGraph, PassNode, ResourceNodeHandle, ResourceRef, TypeEquals,
+    FGResource, FGResourceDescriptor, FrameGraph, GpuRead, GpuWrite, ImportToFrameGraph, PassNode,
+    RenderContext, ResourceNodeHandle, ResourceRef, TypeEquals,
 };
 
 pub struct PassNodeBuilder<'a> {
@@ -43,7 +43,8 @@ impl<'a> PassNodeBuilder<'a> {
 
     pub fn render(
         mut self,
-        render: impl (FnOnce(&mut RenderApi) -> Result<(), RendererError>) + 'static,
+        render: impl (FnOnce(&mut RenderPass, &mut RenderContext) -> Result<(), RendererError>)
+        + 'static,
     ) {
         let prev = self
             .pass_node
@@ -73,7 +74,7 @@ impl<'a> PassNodeBuilder<'a> {
         name: &str,
         resource: Arc<ResourceType>,
         desc: ResourceType::Descriptor,
-    ) -> GraphResourceHandle<ResourceType>
+    ) -> ResourceNodeHandle<ResourceType>
     where
         ResourceType: ImportToFrameGraph,
     {
@@ -84,7 +85,7 @@ impl<'a> PassNodeBuilder<'a> {
         &mut self,
         name: &str,
         desc: DescriptorType,
-    ) -> GraphResourceHandle<DescriptorType::Resource>
+    ) -> ResourceNodeHandle<DescriptorType::Resource>
     where
     DescriptorType: FGResourceDescriptor + TypeEquals<Other = <<DescriptorType as FGResourceDescriptor>::Resource as FGResource>::Descriptor>,
     {

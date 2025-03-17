@@ -1,9 +1,7 @@
-use crate::gfx_base::{
-    color_attachment::ColorAttachment, handle::TypeHandle, render_context::DynRenderFn,
-};
+use crate::gfx_base::{color_attachment::ColorAttachment, handle::TypeHandle};
 
 use super::{
-    FrameGraph, GpuRead, GpuWrite, GraphResourceHandle, LogicPass, Resource, ResourceNode,
+    DynRenderFn, FrameGraph, GpuRead, GpuWrite, LogicPass, Resource, ResourceNode,
     ResourceNodeHandle, ResourceRef,
 };
 
@@ -45,7 +43,7 @@ impl PassNode {
         out_handle: ResourceNodeHandle<ResourceType>,
     ) -> ResourceRef<ResourceType, GpuWrite> {
         let resource_handle = graph
-            .get_resource_node(out_handle.handle())
+            .get_resource_node(&out_handle.resource_node_handle())
             .resource_handle
             .clone();
         let resource = graph.get_resource_mut(&resource_handle);
@@ -59,7 +57,7 @@ impl PassNode {
 
         self.writes.push(new_resource_node_handle.clone());
 
-        ResourceRef::new(GraphResourceHandle::new(
+        ResourceRef::new(ResourceNodeHandle::new(
             new_resource_node_handle,
             resource_handle,
         ))
@@ -71,8 +69,8 @@ impl PassNode {
         name: &str,
     ) -> Option<ResourceRef<ResourceType, GpuRead>> {
         if let Some(handle) = graph.get_resource_board().get(name) {
-            if !self.reads.contains(&handle.resource_node_handle) {
-                self.reads.push(handle.resource_node_handle.clone());
+            if !self.reads.contains(&handle.resource_node_handle()) {
+                self.reads.push(handle.resource_node_handle());
             }
 
             Some(ResourceRef::new(handle.clone().into()))
@@ -86,17 +84,19 @@ impl PassNode {
         graph: &FrameGraph,
         input_handle: ResourceNodeHandle<ResourceType>,
     ) -> ResourceRef<ResourceType, GpuRead> {
-        if !self.reads.contains(input_handle.handle()) {
-            self.reads.push(input_handle.handle().clone());
+        let resource_node_handle = input_handle.resource_node_handle();
+
+        if !self.reads.contains(&resource_node_handle) {
+            self.reads.push(resource_node_handle.clone());
         }
 
         let resource_handle = graph
-            .get_resource_node(input_handle.handle())
+            .get_resource_node(&resource_node_handle)
             .resource_handle
             .clone();
 
-        ResourceRef::new(GraphResourceHandle::new(
-            input_handle.handle().clone(),
+        ResourceRef::new(ResourceNodeHandle::new(
+            resource_node_handle,
             resource_handle,
         ))
     }

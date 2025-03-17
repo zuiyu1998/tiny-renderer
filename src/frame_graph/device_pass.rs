@@ -1,15 +1,10 @@
-use crate::gfx_base::{
-    handle::TypeHandle,
-    render_context::{DynRenderFn, RenderApi, RenderContext},
-    render_pass::{RenderPass, RenderPassDescriptor},
-};
+use crate::gfx_base::{handle::TypeHandle, render_pass::RenderPassDescriptor};
 
-use super::{FrameGraph, PassNode, Resource};
+use super::{DynRenderFn, FrameGraph, PassNode, RenderContext, Resource};
 
 pub struct DevicePass {
     logic_pass: LogicPass,
     render_pass_desc: Option<RenderPassDescriptor>,
-    render_pass: Option<RenderPass>,
 }
 
 impl Default for DevicePass {
@@ -17,7 +12,6 @@ impl Default for DevicePass {
         DevicePass {
             logic_pass: Default::default(),
             render_pass_desc: Some(RenderPassDescriptor::default()),
-            render_pass: None,
         }
     }
 }
@@ -37,23 +31,18 @@ impl DevicePass {
     pub fn execute(&mut self, render_context: &mut RenderContext) {
         let mut render_pass_desc = self.render_pass_desc.take().unwrap();
 
-        render_pass_desc.initialization(render_context);
+        render_context.initialization_render_pass_descriptor(&mut render_pass_desc);
 
-        let render_pass = render_context.device().create_render_pass(render_pass_desc);
-
-        self.render_pass = Some(render_pass);
-
-        let mut render_api = RenderApi::new(render_context, self.render_pass.as_mut().unwrap());
+        let mut render_pass = render_context.device().create_render_pass(render_pass_desc);
 
         if let Some(render_fn) = self.logic_pass.render_fn.take() {
-            if let Err(e) = render_fn(&mut render_api) {
+            if let Err(e) = render_fn(&mut render_pass, render_context) {
                 println!("render_fn error: {}", e)
             }
         }
-        if let Some(mut render_pass) = self.render_pass.take() {
-            let command_buffer = render_pass.finish();
-            render_context.device().submit(vec![command_buffer]);
-        }
+        let mut command_buffer = render_context.device().create_command_buffer();
+        command_buffer.finish(render_pass);
+        render_context.device().submit(vec![command_buffer]);
     }
 }
 

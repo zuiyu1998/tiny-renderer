@@ -13,6 +13,8 @@ pub trait DeviceTrait: 'static + Sync + Send {
 
     fn create_render_pipeline(&self, desc: RenderPipelineDescriptor) -> RenderPipeline;
 
+    fn create_command_buffer(&self) -> CommandBuffer;
+
     fn submit(&self, command_buffers: Vec<CommandBuffer>);
 }
 
@@ -48,5 +50,9 @@ impl Device {
 
     pub fn create_render_pipeline(&self, desc: RenderPipelineDescriptor) -> RenderPipeline {
         self.0.create_render_pipeline(desc)
+    }
+
+    pub fn create_command_buffer(&self) -> CommandBuffer {
+        self.0.create_command_buffer()
     }
 }

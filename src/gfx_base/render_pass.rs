@@ -1,8 +1,11 @@
 use std::{fmt::Debug, ops::Range};
 
+use crate::frame_graph::RenderContext;
+use downcast::{Any, downcast};
+
 use super::{
-    color_attachment::ColorAttachment, command_buffer::CommandBuffer, pipeline::RenderPipeline,
-    render_context::RenderContext,
+    color_attachment::{ColorAttachment, ColorAttachmentView},
+    pipeline::RenderPipeline,
 };
 
 #[derive(Debug, Default)]
@@ -13,28 +16,43 @@ pub struct RenderPassDescriptor {
 impl RenderPassDescriptor {
     pub fn initialization(&mut self, resource_context: &mut RenderContext) {
         for color_attachment in self.color_attachments.iter_mut() {
-            color_attachment.initialization(resource_context);
+            let view = match &color_attachment.view {
+                ColorAttachmentView::Initialization(_) => {
+                    continue;
+                }
+                ColorAttachmentView::Uninitialization(handle) => {
+                    resource_context.get_texture_view_with_swap_chain(handle)
+                }
+            };
+
+            color_attachment.view = ColorAttachmentView::Initialization(view);
         }
     }
 }
 
-pub trait RenderPassTrait: 'static + Debug {
+pub trait RenderPassTrait: 'static + Debug + Any {
     fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>);
 
     fn set_render_pipeline(&mut self, render_pipeline: &RenderPipeline);
-
-    fn finish(&mut self) -> CommandBuffer;
 }
 
 pub struct RenderPass(Box<dyn RenderPassTrait>);
+
+downcast!(dyn RenderPassTrait);
 
 impl RenderPass {
     pub fn new<T: RenderPassTrait>(render_pass: T) -> Self {
         RenderPass(Box::new(render_pass))
     }
 
-    pub fn finish(&mut self) -> CommandBuffer {
-        self.0.finish()
+    pub fn downcast<T: RenderPassTrait>(self) -> Option<Box<T>> {
+        let value: Option<Box<T>> = self.0.downcast::<T>().ok();
+        value
+    }
+
+    pub fn downcast_ref<T: RenderPassTrait>(&self) -> Option<&T> {
+        let value: Option<&T> = self.0.downcast_ref::<T>().ok();
+        value
     }
 
     pub fn set_render_pipeline(&mut self, render_pipeline: &RenderPipeline) {
