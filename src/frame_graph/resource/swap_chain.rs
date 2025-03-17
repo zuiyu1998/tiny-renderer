@@ -1,9 +1,14 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use crate::{
-    frame_graph::{AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor},
+    frame_graph::{
+        AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor, FrameGraph,
+        GraphResourceHandle, ImportToFrameGraph,
+    },
     gfx_base::texture_view::TextureView,
 };
+
+use super::ImportedResource;
 
 pub trait SwapChainTrait: 'static + Debug + Send + Sync {
     fn present(&self);
@@ -31,6 +36,17 @@ impl SwapChain {
 
     pub fn get_texture_view(&self) -> TextureView {
         self.boxed.get_texture_view()
+    }
+}
+
+impl ImportToFrameGraph for SwapChain {
+    fn import(
+        self: Arc<Self>,
+        name: &str,
+        desc: Self::Descriptor,
+        fg: &mut FrameGraph,
+    ) -> GraphResourceHandle {
+        fg._import::<SwapChain>(name, ImportedResource::SwapChain(self), desc)
     }
 }
 

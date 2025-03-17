@@ -1,11 +1,13 @@
+use std::sync::Arc;
+
 use crate::{
     RendererError,
     gfx_base::{color_attachment::ColorAttachment, handle::TypeHandle, render_context::RenderApi},
 };
 
 use super::{
-    FGResource, FGResourceDescriptor, FrameGraph, GraphResourceHandle, ImportedResource, PassNode,
-    ResourceNode, TypeEquals,
+    FGResource, FGResourceDescriptor, FrameGraph, GraphResourceHandle, ImportToFrameGraph,
+    PassNode, ResourceNode, TypeEquals,
 };
 
 pub struct PassNodeBuilder<'a> {
@@ -54,17 +56,16 @@ impl<'a> PassNodeBuilder<'a> {
         self.graph.pass_nodes.push(pass_node);
     }
 
-    pub fn imported<ResourceType>(
+    pub fn import<ResourceType>(
         &mut self,
         name: &str,
-        imported_resource: ImportedResource,
+        resource: Arc<ResourceType>,
         desc: ResourceType::Descriptor,
     ) -> GraphResourceHandle
     where
-        ResourceType: FGResource,
+        ResourceType: ImportToFrameGraph,
     {
-        self.graph
-            .imported::<ResourceType>(name, imported_resource, desc)
+        self.graph.import(name, resource, desc)
     }
 
     pub fn create<DescriptorType>(

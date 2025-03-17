@@ -11,6 +11,18 @@ use crate::gfx_base::{
 
 use std::{fmt::Debug, hash::Hash};
 
+pub trait ImportToFrameGraph
+where
+    Self: Sized + FGResource,
+{
+    fn import(
+        self: Arc<Self>,
+        name: &str,
+        desc: Self::Descriptor,
+        fg: &mut FrameGraph,
+    ) -> GraphResourceHandle;
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum AnyFGResourceDescriptor {
     Texture(TextureDescriptor),
@@ -254,7 +266,19 @@ impl FrameGraph {
         handle
     }
 
-    pub fn imported<ResourceType>(
+    pub fn import<ResourceType>(
+        &mut self,
+        name: &str,
+        resource: Arc<ResourceType>,
+        desc: ResourceType::Descriptor,
+    ) -> GraphResourceHandle
+    where
+        ResourceType: ImportToFrameGraph,
+    {
+        ImportToFrameGraph::import(resource, name, desc, self)
+    }
+
+    pub fn _import<ResourceType>(
         &mut self,
         name: &str,
         imported_resource: ImportedResource,

@@ -52,11 +52,7 @@ impl Renderer {
         let desc = SwapChainDescriptor {};
         let swap_chain = Arc::new(self.device.create_swap_chain(desc.clone()));
 
-        frame_graph.imported::<SwapChain>(
-            "swap_chain",
-            crate::frame_graph::ImportedResource::SwapChain(swap_chain.clone()),
-            desc,
-        );
+        frame_graph.import("swap_chain", swap_chain.clone(), desc);
 
         self.swap_chain = Some(swap_chain);
 
