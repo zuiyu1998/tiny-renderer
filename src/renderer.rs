@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::gfx_base::pipeline::PipelineCache;
 use crate::gfx_base::{device::Device, transient_resource_cache::TransientResourceCache};
 
 use crate::frame_graph::{
@@ -10,6 +11,7 @@ pub struct Renderer {
     compiled_fg: Option<CompiledFrameGraph>,
     device: Arc<Device>,
     transient_resource_cache: TransientResourceCache,
+    pipeline_cache: PipelineCache,
     swap_chain: Option<Arc<SwapChain>>,
 }
 
@@ -17,9 +19,10 @@ impl Renderer {
     pub fn new(device: Arc<Device>) -> Self {
         Self {
             compiled_fg: None,
-            device,
             transient_resource_cache: Default::default(),
             swap_chain: None,
+            pipeline_cache: PipelineCache::new(device.clone()),
+            device,
         }
     }
 
@@ -33,9 +36,13 @@ impl Renderer {
 
         let mut executing_rg: ExecutingFrameGraph;
         {
-            executing_rg = fg.begin_execute(&self.device, &mut self.transient_resource_cache);
+            executing_rg = fg.begin_execute(
+                &self.device,
+                &mut self.transient_resource_cache,
+                &mut self.pipeline_cache,
+            );
 
-            executing_rg.execute(&self.device);
+            executing_rg.execute(&self.device, &self.pipeline_cache);
         }
 
         if let Some(swap_chain) = self.swap_chain.take() {

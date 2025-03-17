@@ -1,10 +1,18 @@
+use std::sync::Arc;
+
 use crate::{
     RendererError,
-    frame_graph::{FGResource, GpuViewType, Resource, ResourceBoard, ResourceRef},
+    frame_graph::{
+        CompiledPipelines, FGResource, GpuViewType, Resource, ResourceBoard, ResourceRef,
+    },
     gfx_base::{device::Device, handle::TypeHandle},
 };
 
-use super::{render_pass::RenderPass, resource_table::ResourceTable};
+use super::{
+    pipeline::{PipelineCache, RenderPipeline},
+    render_pass::RenderPass,
+    resource_table::ResourceTable,
+};
 
 pub type DynRenderFn = dyn FnOnce(&mut RenderApi) -> Result<(), RendererError>;
 
@@ -17,6 +25,10 @@ impl<'a, 'b> RenderApi<'a, 'b>
 where
     'b: 'a,
 {
+    pub fn get_render_pipeline(&self, handle: &TypeHandle<RenderPipeline>) -> Arc<RenderPipeline> {
+        self.context.get_render_pipeline(handle)
+    }
+
     pub fn get_render_pass_mut(&mut self) -> &mut RenderPass {
         self.pass
     }
@@ -63,9 +75,16 @@ pub struct RenderContext<'a> {
     resource_table: &'a mut ResourceTable,
     device: &'a Device,
     resource_board: &'a ResourceBoard,
+    pipeline_cache: &'a PipelineCache,
+    pipelines: &'a CompiledPipelines,
 }
 
 impl<'a> RenderContext<'a> {
+    pub fn get_render_pipeline(&self, handle: &TypeHandle<RenderPipeline>) -> Arc<RenderPipeline> {
+        let handle = self.pipelines.render_pipelines[handle.index()];
+        self.pipeline_cache.get_render_pipeline(&handle)
+    }
+
     pub fn device(&self) -> &Device {
         self.device
     }
@@ -74,11 +93,15 @@ impl<'a> RenderContext<'a> {
         resource_table: &'a mut ResourceTable,
         device: &'a Device,
         resource_board: &'a ResourceBoard,
+        pipeline_cache: &'a PipelineCache,
+        pipelines: &'a CompiledPipelines,
     ) -> Self {
         Self {
             resource_table,
             device,
             resource_board,
+            pipeline_cache,
+            pipelines,
         }
     }
 

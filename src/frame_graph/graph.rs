@@ -5,8 +5,12 @@ use super::{
     SwapChain, SwapChainDescriptor, Texture, TextureDescriptor, pass_node_builder::PassNodeBuilder,
 };
 use crate::gfx_base::{
-    device::Device, handle::TypeHandle, render_context::RenderContext,
-    resource_table::ResourceTable, transient_resource_cache::TransientResourceCache,
+    device::Device,
+    handle::TypeHandle,
+    pipeline::{PipelineCache, RenderPipeline, RenderPipelineDescriptor, RenderPipelineHandle},
+    render_context::RenderContext,
+    resource_table::ResourceTable,
+    transient_resource_cache::TransientResourceCache,
 };
 
 use std::{fmt::Debug, hash::Hash};
@@ -66,12 +70,18 @@ pub struct ExecutingFrameGraph {
     resource_table: ResourceTable,
     device_passes: Vec<DevicePass>,
     resource_board: ResourceBoard,
+    pipelines: CompiledPipelines,
 }
 
 impl ExecutingFrameGraph {
-    pub fn execute(&mut self, device: &Device) {
-        let mut render_context =
-            RenderContext::new(&mut self.resource_table, device, &self.resource_board);
+    pub fn execute(&mut self, device: &Device, pipeline_cache: &PipelineCache) {
+        let mut render_context = RenderContext::new(
+            &mut self.resource_table,
+            device,
+            &self.resource_board,
+            pipeline_cache,
+            &self.pipelines,
+        );
 
         for i in 0..self.device_passes.len() {
             let device_pass = &mut self.device_passes[i];
@@ -83,13 +93,20 @@ impl ExecutingFrameGraph {
         resource_table: ResourceTable,
         device_passes: Vec<DevicePass>,
         resource_board: ResourceBoard,
+        pipelines: CompiledPipelines,
     ) -> Self {
         ExecutingFrameGraph {
             resource_table,
             device_passes,
             resource_board,
+            pipelines,
         }
     }
+}
+
+#[derive(Default)]
+pub struct CompiledPipelines {
+    pub render_pipelines: Vec<RenderPipelineHandle>,
 }
 
 pub struct CompiledFrameGraph {
@@ -111,6 +128,7 @@ impl CompiledFrameGraph {
         mut self,
         device: &Device,
         transient_resource_cache: &mut TransientResourceCache,
+        pipeline_cache: &mut PipelineCache,
     ) -> ExecutingFrameGraph {
         for index in 0..self.fg.pass_nodes.len() {
             let pass_node_handle = self.fg.pass_nodes[index].handle.clone();
@@ -132,10 +150,18 @@ impl CompiledFrameGraph {
             self.device_passes.push(device_pass);
         }
 
+        let render_pipelines: Vec<RenderPipelineHandle> = self
+            .fg
+            .render_pipeline_descs
+            .into_iter()
+            .map(|desc| pipeline_cache.register_render_pipeline(desc))
+            .collect();
+
         ExecutingFrameGraph::new(
             self.resource_table,
             self.device_passes,
             self.fg.resource_board,
+            CompiledPipelines { render_pipelines },
         )
     }
 }
@@ -146,6 +172,7 @@ pub struct FrameGraph {
     resources: Vec<Resource>,
     resource_nodes: Vec<ResourceNode>,
     resource_board: ResourceBoard,
+    render_pipeline_descs: Vec<RenderPipelineDescriptor>,
 }
 
 impl FrameGraph {
@@ -297,6 +324,26 @@ impl<ResourceType> GraphResourceHandle<ResourceType> {
 }
 
 impl FrameGraph {
+    pub fn register_render_pipeline(
+        &mut self,
+        desc: RenderPipelineDescriptor,
+    ) -> TypeHandle<RenderPipeline> {
+        if let Some(index) = self
+            .render_pipeline_descs
+            .iter()
+            .enumerate()
+            .find(|(_index, render_pipeline_desc)| **render_pipeline_desc == desc)
+            .map(|(index, _)| index)
+        {
+            TypeHandle::new(index)
+        } else {
+            let index = self.render_pipeline_descs.len();
+            self.render_pipeline_descs.push(desc);
+
+            TypeHandle::new(index)
+        }
+    }
+
     pub fn get_resource_board(&self) -> &ResourceBoard {
         &self.resource_board
     }
@@ -359,7 +406,7 @@ impl FrameGraph {
         ImportToFrameGraph::import(resource, name, desc, self)
     }
 
-    pub fn _import<ResourceType>(
+    pub(crate) fn _import<ResourceType>(
         &mut self,
         name: &str,
         imported_resource: ImportedResource,

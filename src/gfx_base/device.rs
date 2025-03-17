@@ -2,6 +2,7 @@ use crate::frame_graph::{AnyFGResource, AnyFGResourceDescriptor, SwapChain, Swap
 
 use super::{
     command_buffer::CommandBuffer,
+    pipeline::{RenderPipeline, RenderPipelineDescriptor},
     render_pass::{RenderPass, RenderPassDescriptor},
 };
 
@@ -9,6 +10,8 @@ pub trait DeviceTrait: 'static + Sync + Send {
     fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain;
 
     fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass;
+
+    fn create_render_pipeline(&self, desc: RenderPipelineDescriptor) -> RenderPipeline;
 
     fn submit(&self, command_buffers: Vec<CommandBuffer>);
 }
@@ -41,5 +44,9 @@ impl Device {
 
     pub fn submit(&self, command_buffers: Vec<CommandBuffer>) {
         self.0.submit(command_buffers);
+    }
+
+    pub fn create_render_pipeline(&self, desc: RenderPipelineDescriptor) -> RenderPipeline {
+        self.0.create_render_pipeline(desc)
     }
 }

@@ -2,7 +2,12 @@ use std::sync::Arc;
 
 use crate::{
     RendererError,
-    gfx_base::{color_attachment::ColorAttachment, handle::TypeHandle, render_context::RenderApi},
+    gfx_base::{
+        color_attachment::ColorAttachment,
+        handle::TypeHandle,
+        pipeline::{RenderPipeline, RenderPipelineDescriptor},
+        render_context::RenderApi,
+    },
 };
 
 use super::{
@@ -22,6 +27,13 @@ impl Drop for PassNodeBuilder<'_> {
 }
 
 impl<'a> PassNodeBuilder<'a> {
+    pub fn register_render_pipeline(
+        &mut self,
+        desc: RenderPipelineDescriptor,
+    ) -> TypeHandle<RenderPipeline> {
+        self.graph.register_render_pipeline(desc)
+    }
+
     pub fn add_attachment(&mut self, color_attachment: ColorAttachment) {
         self.pass_node
             .as_mut()

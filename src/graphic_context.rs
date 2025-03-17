@@ -1,6 +1,9 @@
 use crate::{
     frame_graph::SwapChain,
-    gfx_base::color_attachment::{ColorAttachment, ColorAttachmentView},
+    gfx_base::{
+        color_attachment::{ColorAttachment, ColorAttachmentView},
+        pipeline::RenderPipelineDescriptor,
+    },
     renderer::Renderer,
 };
 
@@ -14,10 +17,23 @@ impl InitializationGraphicContext {
         self.renderer.prepare_frame(|fg| {
             let mut builder = fg.create_pass_node_builder(0, "final");
 
+            let pipeline_handle = builder.register_render_pipeline(RenderPipelineDescriptor {
+                label: Some("test".to_string()),
+            });
+
             let new_swap_chain = builder.read_from_board::<SwapChain>("swap_chain").unwrap();
 
             builder.add_attachment(ColorAttachment {
                 view: ColorAttachmentView::new(new_swap_chain.handle().resource_handle.clone()),
+            });
+
+            let pipeline_handle_clone = pipeline_handle.clone();
+            builder.render(move |api| {
+                let pipeline = api.get_render_pipeline(&pipeline_handle_clone);
+                api.get_render_pass_mut().set_render_pipeline(&pipeline);
+                api.get_render_pass_mut().draw(0..3, 0..1);
+
+                Ok(())
             });
         });
         self.renderer.draw_frame();
