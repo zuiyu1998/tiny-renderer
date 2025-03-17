@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::{
-    FGResource, FGResourceDescriptor, FrameGraph, GraphResourceHandle, ImportToFrameGraph,
-    PassNode, ResourceNode, TypeEquals,
+    FGResource, FGResourceDescriptor, FrameGraph, GpuRead, GpuWrite, GraphResourceHandle,
+    ImportToFrameGraph, PassNode, ResourceNodeHandle, ResourceRef, TypeEquals,
 };
 
 pub struct PassNodeBuilder<'a> {
@@ -61,7 +61,7 @@ impl<'a> PassNodeBuilder<'a> {
         name: &str,
         resource: Arc<ResourceType>,
         desc: ResourceType::Descriptor,
-    ) -> GraphResourceHandle
+    ) -> GraphResourceHandle<ResourceType>
     where
         ResourceType: ImportToFrameGraph,
     {
@@ -72,28 +72,37 @@ impl<'a> PassNodeBuilder<'a> {
         &mut self,
         name: &str,
         desc: DescriptorType,
-    ) -> GraphResourceHandle
+    ) -> GraphResourceHandle<DescriptorType::Resource>
     where
     DescriptorType: FGResourceDescriptor + TypeEquals<Other = <<DescriptorType as FGResourceDescriptor>::Resource as FGResource>::Descriptor>,
     {
         self.graph.create(name, desc)
     }
 
-    pub fn read_from_board(&mut self, name: &str) -> Option<GraphResourceHandle> {
+    pub fn read_from_board<ResourceType>(
+        &mut self,
+        name: &str,
+    ) -> Option<ResourceRef<ResourceType, GpuRead>> {
         self.pass_node
             .as_mut()
             .unwrap()
             .read_from_board(self.graph, name)
     }
 
-    pub fn read(&mut self, input_handle: TypeHandle<ResourceNode>) -> GraphResourceHandle {
+    pub fn read<ResourceType>(
+        &mut self,
+        input_handle: ResourceNodeHandle<ResourceType>,
+    ) -> ResourceRef<ResourceType, GpuRead> {
         self.pass_node
             .as_mut()
             .unwrap()
             .read(self.graph, input_handle)
     }
 
-    pub fn write(&mut self, out_handle: TypeHandle<ResourceNode>) -> GraphResourceHandle {
+    pub fn write<ResourceType>(
+        &mut self,
+        out_handle: ResourceNodeHandle<ResourceType>,
+    ) -> ResourceRef<ResourceType, GpuWrite> {
         self.pass_node
             .as_mut()
             .unwrap()

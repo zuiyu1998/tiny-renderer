@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{marker::PhantomData, sync::Arc};
 
 use super::{
     DevicePass, ImportedResource, PassNode, Resource, ResourceBoard, ResourceInfo, ResourceNode,
@@ -20,7 +20,7 @@ where
         name: &str,
         desc: Self::Descriptor,
         fg: &mut FrameGraph,
-    ) -> GraphResourceHandle;
+    ) -> GraphResourceHandle<Self>;
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -209,10 +209,91 @@ impl FrameGraph {
     }
 }
 
-#[derive(Clone)]
-pub struct GraphResourceHandle {
+pub struct GraphResourceHandle<ResourceType> {
     pub resource_node_handle: TypeHandle<ResourceNode>,
     pub resource_handle: TypeHandle<Resource>,
+    _marker: PhantomData<ResourceType>,
+}
+
+///用于控制资源是否可写
+pub struct ResourceRef<ResourceType, ViewType> {
+    handle: GraphResourceHandle<ResourceType>,
+    _marker: PhantomData<ViewType>,
+}
+
+impl<ResourceType, ViewType> ResourceRef<ResourceType, ViewType> {
+    pub fn handle(&self) -> RawGraphResourceHandle {
+        self.handle.raw()
+    }
+
+    pub fn new(handle: GraphResourceHandle<ResourceType>) -> Self {
+        Self {
+            handle,
+            _marker: PhantomData,
+        }
+    }
+}
+
+pub trait GpuViewType {
+    const IS_WRITABLE: bool;
+}
+
+pub struct GpuRead;
+
+impl GpuViewType for GpuRead {
+    const IS_WRITABLE: bool = false;
+}
+
+pub struct GpuWrite;
+
+impl GpuViewType for GpuWrite {
+    const IS_WRITABLE: bool = true;
+}
+
+impl<ResourceType> Clone for GraphResourceHandle<ResourceType> {
+    fn clone(&self) -> Self {
+        GraphResourceHandle {
+            resource_node_handle: self.resource_node_handle.clone(),
+            resource_handle: self.resource_handle.clone(),
+            _marker: PhantomData,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct RawGraphResourceHandle {
+    pub resource_node_handle: TypeHandle<ResourceNode>,
+    pub resource_handle: TypeHandle<Resource>,
+}
+
+impl<ResourceType> From<RawGraphResourceHandle> for GraphResourceHandle<ResourceType> {
+    fn from(value: RawGraphResourceHandle) -> Self {
+        GraphResourceHandle {
+            resource_node_handle: value.resource_node_handle.clone(),
+            resource_handle: value.resource_handle.clone(),
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<ResourceType> GraphResourceHandle<ResourceType> {
+    pub fn raw(&self) -> RawGraphResourceHandle {
+        RawGraphResourceHandle {
+            resource_node_handle: self.resource_node_handle.clone(),
+            resource_handle: self.resource_handle.clone(),
+        }
+    }
+
+    pub fn new(
+        resource_node_handle: TypeHandle<ResourceNode>,
+        resource_handle: TypeHandle<Resource>,
+    ) -> Self {
+        Self {
+            resource_node_handle,
+            resource_handle,
+            _marker: PhantomData,
+        }
+    }
 }
 
 impl FrameGraph {
@@ -271,7 +352,7 @@ impl FrameGraph {
         name: &str,
         resource: Arc<ResourceType>,
         desc: ResourceType::Descriptor,
-    ) -> GraphResourceHandle
+    ) -> GraphResourceHandle<ResourceType>
     where
         ResourceType: ImportToFrameGraph,
     {
@@ -283,7 +364,7 @@ impl FrameGraph {
         name: &str,
         imported_resource: ImportedResource,
         desc: ResourceType::Descriptor,
-    ) -> GraphResourceHandle
+    ) -> GraphResourceHandle<ResourceType>
     where
         ResourceType: FGResource,
     {
@@ -300,17 +381,14 @@ impl FrameGraph {
 
         let handle = self.create_resource_node(resource_info);
 
-        let handle = GraphResourceHandle {
-            resource_node_handle: handle,
-            resource_handle,
-        };
+        let handle = GraphResourceHandle::new(handle, resource_handle);
 
-        self.resource_board.put(name, handle.clone());
+        self.resource_board.put(name, handle.raw());
 
         handle
     }
 
-    pub fn create<DescriptorType>(&mut self, name: &str, desc: DescriptorType) -> GraphResourceHandle
+    pub fn create<DescriptorType>(&mut self, name: &str, desc: DescriptorType) -> GraphResourceHandle<DescriptorType::Resource>
     where
         DescriptorType: FGResourceDescriptor + TypeEquals<Other = <<DescriptorType as FGResourceDescriptor>::Resource as FGResource>::Descriptor>,
     {
@@ -327,9 +405,6 @@ impl FrameGraph {
 
         let handle = self.create_resource_node(resource_info);
 
-        GraphResourceHandle {
-            resource_node_handle: handle,
-            resource_handle,
-        }
+        GraphResourceHandle::new(handle, resource_handle)
     }
 }

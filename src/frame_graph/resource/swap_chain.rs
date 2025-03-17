@@ -45,7 +45,7 @@ impl ImportToFrameGraph for SwapChain {
         name: &str,
         desc: Self::Descriptor,
         fg: &mut FrameGraph,
-    ) -> GraphResourceHandle {
+    ) -> GraphResourceHandle<Self> {
         fg._import::<SwapChain>(name, ImportedResource::SwapChain(self), desc)
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     RendererError,
-    frame_graph::{FGResource, Resource, ResourceBoard},
+    frame_graph::{FGResource, GpuViewType, Resource, ResourceBoard, ResourceRef},
     gfx_base::{device::Device, handle::TypeHandle},
 };
 
@@ -29,18 +29,33 @@ where
         Self { context, pass }
     }
 
-    pub fn get_resource<ResourceType: FGResource>(
+    pub fn get_resource<ResourceType: FGResource, ViewType>(
         &self,
-        handle: &TypeHandle<Resource>,
-    ) -> Option<&ResourceType> {
-        self.context.get_resource(handle)
+        handle: &ResourceRef<ResourceType, ViewType>,
+    ) -> Option<&ResourceType>
+    where
+        ViewType: GpuViewType,
+    {
+        if !ViewType::IS_WRITABLE {
+            self.context.get_resource(&handle.handle().resource_handle)
+        } else {
+            None
+        }
     }
 
-    pub fn get_resource_mut<ResourceType: FGResource>(
+    pub fn get_resource_mut<ResourceType: FGResource, ViewType>(
         &mut self,
-        handle: &TypeHandle<Resource>,
-    ) -> Option<&mut ResourceType> {
-        self.context.get_resource_mut(handle)
+        handle: &ResourceRef<ResourceType, ViewType>,
+    ) -> Option<&mut ResourceType>
+    where
+        ViewType: GpuViewType,
+    {
+        if ViewType::IS_WRITABLE {
+            self.context
+                .get_resource_mut(&handle.handle().resource_handle)
+        } else {
+            None
+        }
     }
 }
 

@@ -1,6 +1,26 @@
+use std::marker::PhantomData;
+
 use crate::gfx_base::handle::TypeHandle;
 
 use super::{PassNode, Resource};
+
+pub struct ResourceNodeHandle<ResourceType> {
+    handle: TypeHandle<ResourceNode>,
+    _marker: PhantomData<ResourceType>,
+}
+
+impl<ResourceType> ResourceNodeHandle<ResourceType> {
+    pub fn handle(&self) -> &TypeHandle<ResourceNode> {
+        &self.handle
+    }
+
+    pub fn new(handle: TypeHandle<ResourceNode>) -> ResourceNodeHandle<Resource> {
+        ResourceNodeHandle {
+            handle,
+            _marker: PhantomData,
+        }
+    }
+}
 
 pub struct ResourceNode {
     ///资源索引

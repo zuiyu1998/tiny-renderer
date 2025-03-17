@@ -1,4 +1,5 @@
 use crate::{
+    frame_graph::SwapChain,
     gfx_base::color_attachment::{ColorAttachment, ColorAttachmentView},
     renderer::Renderer,
 };
@@ -13,10 +14,10 @@ impl InitializationGraphicContext {
         self.renderer.prepare_frame(|fg| {
             let mut builder = fg.create_pass_node_builder(0, "final");
 
-            let new_swap_chain = builder.read_from_board("swap_chain").unwrap();
+            let new_swap_chain = builder.read_from_board::<SwapChain>("swap_chain").unwrap();
 
             builder.add_attachment(ColorAttachment {
-                view: ColorAttachmentView::new(new_swap_chain.resource_handle.clone()),
+                view: ColorAttachmentView::new(new_swap_chain.handle().resource_handle.clone()),
             });
         });
         self.renderer.draw_frame();

@@ -2,7 +2,10 @@ use crate::gfx_base::{
     color_attachment::ColorAttachment, handle::TypeHandle, render_context::DynRenderFn,
 };
 
-use super::{FrameGraph, GraphResourceHandle, LogicPass, Resource, ResourceNode};
+use super::{
+    FrameGraph, GpuRead, GpuWrite, GraphResourceHandle, LogicPass, Resource, ResourceNode,
+    ResourceNodeHandle, ResourceRef,
+};
 
 pub struct PassNode {
     ///唯一的节点名称
@@ -36,12 +39,15 @@ impl PassNode {
         self.color_attachments.push(color_attachment);
     }
 
-    pub fn write(
+    pub fn write<ResourceType>(
         &mut self,
         graph: &mut FrameGraph,
-        out_handle: TypeHandle<ResourceNode>,
-    ) -> GraphResourceHandle {
-        let resource_handle = graph.get_resource_node(&out_handle).resource_handle.clone();
+        out_handle: ResourceNodeHandle<ResourceType>,
+    ) -> ResourceRef<ResourceType, GpuWrite> {
+        let resource_handle = graph
+            .get_resource_node(out_handle.handle())
+            .resource_handle
+            .clone();
         let resource = graph.get_resource_mut(&resource_handle);
         resource.get_info_mut().new_version();
 
@@ -53,46 +59,46 @@ impl PassNode {
 
         self.writes.push(new_resource_node_handle.clone());
 
-        GraphResourceHandle {
-            resource_node_handle: new_resource_node_handle,
+        ResourceRef::new(GraphResourceHandle::new(
+            new_resource_node_handle,
             resource_handle,
-        }
+        ))
     }
 
-    pub fn read_from_board(
+    pub fn read_from_board<ResourceType>(
         &mut self,
         graph: &FrameGraph,
         name: &str,
-    ) -> Option<GraphResourceHandle> {
+    ) -> Option<ResourceRef<ResourceType, GpuRead>> {
         if let Some(handle) = graph.get_resource_board().get(name) {
             if !self.reads.contains(&handle.resource_node_handle) {
                 self.reads.push(handle.resource_node_handle.clone());
             }
 
-            Some(handle.clone())
+            Some(ResourceRef::new(handle.clone().into()))
         } else {
             None
         }
     }
 
-    pub fn read(
+    pub fn read<ResourceType>(
         &mut self,
         graph: &FrameGraph,
-        input_handle: TypeHandle<ResourceNode>,
-    ) -> GraphResourceHandle {
-        if !self.reads.contains(&input_handle) {
-            self.reads.push(input_handle.clone());
+        input_handle: ResourceNodeHandle<ResourceType>,
+    ) -> ResourceRef<ResourceType, GpuRead> {
+        if !self.reads.contains(input_handle.handle()) {
+            self.reads.push(input_handle.handle().clone());
         }
 
         let resource_handle = graph
-            .get_resource_node(&input_handle)
+            .get_resource_node(input_handle.handle())
             .resource_handle
             .clone();
 
-        GraphResourceHandle {
-            resource_node_handle: input_handle,
+        ResourceRef::new(GraphResourceHandle::new(
+            input_handle.handle().clone(),
             resource_handle,
-        }
+        ))
     }
 
     pub fn new(insert_point: u32, name: &str, handle: TypeHandle<PassNode>) -> Self {
