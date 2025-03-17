@@ -63,7 +63,8 @@ impl<'a> PassNodeBuilder<'a> {
     where
         ResourceType: FGResource,
     {
-        self.graph.imported::<ResourceType>(name, imported_resource, desc)
+        self.graph
+            .imported::<ResourceType>(name, imported_resource, desc)
     }
 
     pub fn create<DescriptorType>(
@@ -81,20 +82,20 @@ impl<'a> PassNodeBuilder<'a> {
         self.pass_node
             .as_mut()
             .unwrap()
-            .read_from_board(&self.graph, name)
+            .read_from_board(self.graph, name)
     }
 
     pub fn read(&mut self, input_handle: TypeHandle<ResourceNode>) -> GraphResourceHandle {
         self.pass_node
             .as_mut()
             .unwrap()
-            .read(&self.graph, input_handle)
+            .read(self.graph, input_handle)
     }
 
     pub fn write(&mut self, out_handle: TypeHandle<ResourceNode>) -> GraphResourceHandle {
         self.pass_node
             .as_mut()
             .unwrap()
-            .write(&mut self.graph, out_handle)
+            .write(self.graph, out_handle)
     }
 }

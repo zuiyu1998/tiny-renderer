@@ -1,16 +1,11 @@
-use std::sync::Arc;
-
 use crate::{
-    gfx_base::{
-        color_attachment::{ColorAttachment, ColorAttachmentView},
-        device::Device,
-    },
+    gfx_base::color_attachment::{ColorAttachment, ColorAttachmentView},
     renderer::Renderer,
 };
 
 pub struct InitializationGraphicContext {
     renderer: Renderer,
-    device: Arc<Device>,
+    params: GraphicContextParams,
 }
 
 impl InitializationGraphicContext {
@@ -28,14 +23,27 @@ impl InitializationGraphicContext {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct GraphicContextParams {}
+
 pub enum GraphicContext {
-    Initialization(InitializationGraphicContext),
-    Uninitialization,
+    Initialization(Box<InitializationGraphicContext>),
+    Uninitialization(GraphicContextParams),
 }
 
 impl GraphicContext {
-    pub fn initialization(&mut self, device: Arc<Device>, renderer: Renderer) {
-        *self = GraphicContext::Initialization(InitializationGraphicContext { renderer, device });
+    pub fn get_params(&self) -> &GraphicContextParams {
+        match &self {
+            GraphicContext::Uninitialization(params) => params,
+            GraphicContext::Initialization(init) => &init.params,
+        }
+    }
+
+    pub fn initialization(&mut self, renderer: Renderer) {
+        *self = GraphicContext::Initialization(Box::new(InitializationGraphicContext {
+            renderer,
+            params: self.get_params().clone(),
+        }));
     }
 
     pub fn render(&mut self) {

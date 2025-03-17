@@ -29,7 +29,6 @@ impl RenderPass {
     }
 
     pub fn finish(&mut self) -> CommandBuffer {
-        let command_buffer = self.0.finish();
-        command_buffer
+        self.0.finish()
     }
 }

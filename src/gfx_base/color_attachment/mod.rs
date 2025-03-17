@@ -1,4 +1,3 @@
-
 use crate::frame_graph::{Resource, SwapChain};
 
 use super::{handle::TypeHandle, render_context::RenderContext, texture_view::TextureView};
@@ -10,7 +9,6 @@ pub enum ColorAttachmentView {
 }
 
 impl ColorAttachmentView {
-
     pub fn new(handle: TypeHandle<Resource>) -> Self {
         ColorAttachmentView::Uninitialization(handle)
     }

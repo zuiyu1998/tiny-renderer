@@ -6,6 +6,5 @@ pub mod renderer;
 
 use thiserror::Error;
 
-
 #[derive(Debug, Error)]
 pub enum RendererError {}

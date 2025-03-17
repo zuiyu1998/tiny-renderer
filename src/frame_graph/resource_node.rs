@@ -1,4 +1,3 @@
-
 use crate::gfx_base::handle::TypeHandle;
 
 use super::{PassNode, Resource};

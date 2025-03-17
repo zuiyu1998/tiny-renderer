@@ -18,7 +18,7 @@ where
     'b: 'a,
 {
     pub fn get_render_pass_mut(&mut self) -> &mut RenderPass {
-        &mut self.pass
+        self.pass
     }
 
     pub fn device(&self) -> &Device {
@@ -36,11 +36,11 @@ where
         self.context.get_resource(handle)
     }
 
-    pub fn get_resouce_mut<ResourceType: FGResource>(
+    pub fn get_resource_mut<ResourceType: FGResource>(
         &mut self,
         handle: &TypeHandle<Resource>,
     ) -> Option<&mut ResourceType> {
-        self.context.get_resouce_mut(handle)
+        self.context.get_resource_mut(handle)
     }
 }
 
@@ -52,7 +52,7 @@ pub struct RenderContext<'a> {
 
 impl<'a> RenderContext<'a> {
     pub fn device(&self) -> &Device {
-        &self.device
+        self.device
     }
 
     pub fn new(
@@ -67,6 +67,29 @@ impl<'a> RenderContext<'a> {
         }
     }
 
+    pub fn get_resource_from_name<ResourceType: FGResource>(
+        &self,
+        name: &str,
+    ) -> Option<&ResourceType> {
+        if let Some(handle) = self.resource_board.get(name) {
+            self.resource_table.get_resource(&handle.resource_handle)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_resource_mut_from_name<ResourceType: FGResource>(
+        &mut self,
+        name: &str,
+    ) -> Option<&mut ResourceType> {
+        if let Some(handle) = self.resource_board.get(name) {
+            self.resource_table
+                .get_resource_mut(&handle.resource_handle)
+        } else {
+            None
+        }
+    }
+
     pub fn get_resource<ResourceType: FGResource>(
         &self,
         handle: &TypeHandle<Resource>,
@@ -74,10 +97,10 @@ impl<'a> RenderContext<'a> {
         self.resource_table.get_resource(handle)
     }
 
-    pub fn get_resouce_mut<ResourceType: FGResource>(
+    pub fn get_resource_mut<ResourceType: FGResource>(
         &mut self,
         handle: &TypeHandle<Resource>,
     ) -> Option<&mut ResourceType> {
-        self.resource_table.get_resouce_mut(handle)
+        self.resource_table.get_resource_mut(handle)
     }
 }

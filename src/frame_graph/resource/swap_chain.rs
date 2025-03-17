@@ -5,7 +5,7 @@ use crate::{
     gfx_base::texture_view::TextureView,
 };
 
-pub trait SwapChainTrait: 'static + Debug {
+pub trait SwapChainTrait: 'static + Debug + Send + Sync {
     fn present(&self);
 
     fn get_texture_view(&self) -> TextureView;

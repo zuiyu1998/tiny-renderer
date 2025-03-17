@@ -52,7 +52,7 @@ impl<T: Sized> TypeEquals for T {
 
 pub struct ExecutingFrameGraph {
     resource_table: ResourceTable,
-    device_passs: Vec<DevicePass>,
+    device_passes: Vec<DevicePass>,
     resource_board: ResourceBoard,
 }
 
@@ -61,20 +61,20 @@ impl ExecutingFrameGraph {
         let mut render_context =
             RenderContext::new(&mut self.resource_table, device, &self.resource_board);
 
-        for i in 0..self.device_passs.len() {
-            let device_pass = &mut self.device_passs[i];
+        for i in 0..self.device_passes.len() {
+            let device_pass = &mut self.device_passes[i];
             device_pass.execute(&mut render_context);
         }
     }
 
     pub fn new(
         resource_table: ResourceTable,
-        device_passs: Vec<DevicePass>,
+        device_passes: Vec<DevicePass>,
         resource_board: ResourceBoard,
     ) -> Self {
         ExecutingFrameGraph {
             resource_table,
-            device_passs,
+            device_passes,
             resource_board,
         }
     }
@@ -83,7 +83,7 @@ impl ExecutingFrameGraph {
 pub struct CompiledFrameGraph {
     fg: FrameGraph,
     resource_table: ResourceTable,
-    device_passs: Vec<DevicePass>,
+    device_passes: Vec<DevicePass>,
 }
 
 impl CompiledFrameGraph {
@@ -91,7 +91,7 @@ impl CompiledFrameGraph {
         CompiledFrameGraph {
             fg,
             resource_table: ResourceTable::default(),
-            device_passs: vec![],
+            device_passes: vec![],
         }
     }
 
@@ -117,12 +117,12 @@ impl CompiledFrameGraph {
             let mut device_pass = DevicePass::default();
 
             device_pass.extra(&mut self.fg, pass_node_handle);
-            self.device_passs.push(device_pass);
+            self.device_passes.push(device_pass);
         }
 
         ExecutingFrameGraph::new(
             self.resource_table,
-            self.device_passs,
+            self.device_passes,
             self.fg.resource_board,
         )
     }

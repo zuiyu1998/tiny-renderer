@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use tiny_renderer::{
-    gfx_base::device::Device, gfx_wgpu::WgpuDevice, graphic_context::GraphicContext,
+    gfx_base::device::Device,
+    gfx_wgpu::WgpuDevice,
+    graphic_context::{GraphicContext, GraphicContextParams},
     renderer::Renderer,
 };
 use winit::{
@@ -55,19 +57,17 @@ impl State {
         let device = Arc::new(Device::new(device));
         let renderer = Renderer::new(device.clone());
 
-        let mut graphic_context = GraphicContext::Uninitialization;
+        let mut graphic_context = GraphicContext::Uninitialization(GraphicContextParams {});
 
-        graphic_context.initialization(device, renderer);
+        graphic_context.initialization(renderer);
 
-        let state = State {
+        State {
             window,
             // device,
             // queue,
             size,
             graphic_context,
-        };
-
-        state
+        }
     }
 
     fn get_window(&self) -> &Window {

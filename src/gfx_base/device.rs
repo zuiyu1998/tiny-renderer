@@ -5,7 +5,7 @@ use super::{
     render_pass::{RenderPass, RenderPassDescriptor},
 };
 
-pub trait DeviceTrait: 'static {
+pub trait DeviceTrait: 'static + Sync + Send {
     fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain;
 
     fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass;

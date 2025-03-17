@@ -64,16 +64,12 @@ impl PassNode {
         graph: &FrameGraph,
         name: &str,
     ) -> Option<GraphResourceHandle> {
-        if let Some(handle) = graph
-            .get_resource_board()
-            .get(name)
-            .map(|handle| handle.clone())
-        {
+        if let Some(handle) = graph.get_resource_board().get(name) {
             if !self.reads.contains(&handle.resource_node_handle) {
                 self.reads.push(handle.resource_node_handle.clone());
             }
 
-            Some(handle)
+            Some(handle.clone())
         } else {
             None
         }
