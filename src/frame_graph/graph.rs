@@ -2,14 +2,13 @@ use std::sync::Arc;
 
 use super::{
     DevicePass, ImportedResource, PassNode, RenderContext, Resource, ResourceBoard, ResourceInfo,
-    ResourceNode, ResourceNodeHandle, SwapChain, SwapChainDescriptor, Texture, TextureDescriptor,
-    pass_node_builder::PassNodeBuilder,
+    ResourceNode, ResourceNodeHandle, ResourceTable, SwapChain, SwapChainDescriptor, Texture,
+    TextureDescriptor, pass_node_builder::PassNodeBuilder,
 };
 use crate::gfx_base::{
     device::Device,
     handle::TypeHandle,
     pipeline::{PipelineCache, RenderPipeline, RenderPipelineDescriptor, RenderPipelineHandle},
-    resource_table::ResourceTable,
     transient_resource_cache::TransientResourceCache,
 };
 

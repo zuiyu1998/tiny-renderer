@@ -9,12 +9,11 @@ use crate::{
         handle::TypeHandle,
         pipeline::{PipelineCache, RenderPipeline},
         render_pass::{RenderPass, RenderPassDescriptor},
-        resource_table::ResourceTable,
         texture_view::TextureView,
     },
 };
 
-use super::{GpuRead, GpuWrite, Resource, ResourceRef, SwapChain};
+use super::{GpuRead, GpuWrite, Resource, ResourceRef, ResourceTable, SwapChain};
 
 pub type DynRenderFn = dyn FnOnce(&mut RenderPass, &mut RenderContext) -> Result<(), RendererError>;
 
