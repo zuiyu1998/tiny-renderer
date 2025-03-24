@@ -27,20 +27,3 @@ impl ColorAttachmentView {
 pub struct ColorAttachment {
     pub view: ColorAttachmentView,
 }
-
-// impl ColorAttachment {
-//     pub fn initialization(&mut self, resource_context: &mut RenderContext) {
-//         let handle = match &self.view {
-//             ColorAttachmentView::Uninitialization(handle) => handle.clone(),
-//             ColorAttachmentView::Initialization(_) => {
-//                 return;
-//             }
-//         };
-
-//         let swap_chain = resource_context.get_resource::<SwapChain>(&handle).unwrap();
-
-//         let view = swap_chain.get_texture_view();
-
-//         self.view = ColorAttachmentView::Initialization(view)
-//     }
-// }

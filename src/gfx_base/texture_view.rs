@@ -1,26 +1,10 @@
 use std::fmt::Debug;
 
-use downcast::{Any, downcast};
+use downcast::Any;
 
-#[derive(Debug)]
-pub struct TextureView(Box<dyn TextureViewTrait>);
+use crate::{define_atomic_id, define_gfx_type};
 
+define_atomic_id!(TextureViewId);
 pub trait TextureViewTrait: 'static + Any + Debug {}
 
-downcast!(dyn TextureViewTrait);
-
-impl TextureView {
-    pub fn new<T: TextureViewTrait>(view: T) -> Self {
-        TextureView(Box::new(view))
-    }
-
-    pub fn downcast<T: TextureViewTrait>(self) -> Option<Box<T>> {
-        let value: Option<Box<T>> = self.0.downcast::<T>().ok();
-        value
-    }
-
-    pub fn downcast_ref<T: TextureViewTrait>(&self) -> Option<&T> {
-        let value: Option<&T> = self.0.downcast_ref::<T>().ok();
-        value
-    }
-}
+define_gfx_type!(TextureView, TextureViewId, TextureViewTrait);
