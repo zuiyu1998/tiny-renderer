@@ -43,7 +43,7 @@ impl GpuViewType for GpuWrite {
     const IS_WRITABLE: bool = true;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RawResourceNodeHandle {
     resource_node_handle: TypeHandle<ResourceNode>,
     resource_handle: TypeHandle<Resource>,
@@ -116,6 +116,7 @@ impl<ResourceType> Clone for ResourceNodeHandle<ResourceType> {
 
 impl<ResourceType> ResourceNodeHandle<ResourceType> {}
 
+#[derive(Debug)]
 pub struct ResourceNode {
     ///资源索引
     pub resource_handle: TypeHandle<Resource>,

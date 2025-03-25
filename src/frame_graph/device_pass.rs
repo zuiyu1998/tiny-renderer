@@ -1,7 +1,10 @@
+use std::fmt::Debug;
+
 use crate::gfx_base::{handle::TypeHandle, render_pass::RenderPassDescriptor};
 
 use super::{DynRenderFn, FrameGraph, PassNode, RenderContext, Resource};
 
+#[derive(Debug)]
 pub struct DevicePass {
     logic_pass: LogicPass,
     render_pass_desc: Option<RenderPassDescriptor>,
@@ -50,4 +53,13 @@ impl DevicePass {
 pub struct LogicPass {
     pub render_fn: Option<Box<DynRenderFn>>,
     pub resource_release_array: Vec<TypeHandle<Resource>>,
+}
+
+impl Debug for LogicPass {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LogicPass")
+            .field("render_fn", &self.render_fn.is_some())
+            .field("resource_release_array", &self.resource_release_array)
+            .finish()
+    }
 }

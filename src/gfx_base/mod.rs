@@ -1,9 +1,14 @@
+pub mod bind_group_layout;
+pub mod cache;
 pub mod color_attachment;
 pub mod command_buffer;
 pub mod device;
 pub mod handle;
 pub mod macros;
 pub mod pipeline;
+pub mod pipeline_layout;
 pub mod render_pass;
+pub mod shader;
+pub mod shader_module;
 pub mod texture_view;
 pub mod transient_resource_cache;

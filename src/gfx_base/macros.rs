@@ -58,9 +58,9 @@ macro_rules! define_gfx_type {
         }
 
         impl $downcast_type {
-            pub fn new<T: $downcast_type_trait>(view: T) -> Self {
+            pub fn new<T: $downcast_type_trait>(instance: T) -> Self {
                 $downcast_type {
-                    instance: Box::new(view),
+                    instance: Box::new(instance),
                     id: $downcast_type_id::new(),
                 }
             }

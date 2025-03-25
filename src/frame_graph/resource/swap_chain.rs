@@ -1,14 +1,9 @@
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
 use crate::{
-    frame_graph::{
-        AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor, FrameGraph,
-        ImportToFrameGraph, ResourceNodeHandle,
-    },
+    frame_graph::{AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor},
     gfx_base::texture_view::TextureView,
 };
-
-use super::ImportedResource;
 
 pub trait SwapChainTrait: 'static + Debug + Send + Sync {
     fn present(&self);
@@ -39,23 +34,12 @@ impl SwapChain {
     }
 }
 
-impl ImportToFrameGraph for SwapChain {
-    fn import(
-        self: Arc<Self>,
-        name: &str,
-        desc: Self::Descriptor,
-        fg: &mut FrameGraph,
-    ) -> ResourceNodeHandle<Self> {
-        fg._import::<SwapChain>(name, ImportedResource::SwapChain(self), desc)
-    }
-}
-
 impl FGResource for SwapChain {
     type Descriptor = SwapChainDescriptor;
 
     fn borrow_resource(res: &AnyFGResource) -> &Self {
         match res {
-            AnyFGResource::ImportedSwapChain(res) => res,
+            AnyFGResource::OwnedSwapChain(res) => res,
             _ => {
                 unimplemented!()
             }
@@ -64,7 +48,7 @@ impl FGResource for SwapChain {
 
     fn borrow_resource_mut(res: &mut AnyFGResource) -> &mut Self {
         match res {
-            AnyFGResource::ImportedSwapChain(_res) => {
+            AnyFGResource::OwnedSwapChain(_res) => {
                 unimplemented!()
             }
             _ => {
@@ -79,7 +63,7 @@ impl FGResource for SwapChain {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct SwapChainDescriptor {}
+pub struct SwapChainDescriptor;
 
 impl From<SwapChainDescriptor> for AnyFGResourceDescriptor {
     fn from(value: SwapChainDescriptor) -> Self {

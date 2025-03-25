@@ -1,91 +1,65 @@
-use downcast::{Any, downcast};
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+mod pipeline_cache;
+mod render_pipeline;
+mod shader_cache;
 
-use super::device::Device;
+use fyrox_resource::Resource;
+pub use pipeline_cache::*;
+pub use render_pipeline::*;
+pub use shader_cache::*;
+use wgpu::{BufferAddress, ColorTargetState, PushConstantRange, VertexAttribute, VertexStepMode};
 
-pub struct PipelineCache {
-    rp_handle_to_pipeline: HashMap<RenderPipelineHandle, RenderPipelineState>,
-    rp_descs_to_handle: HashMap<RenderPipelineDescriptor, RenderPipelineHandle>,
-    render_pipelines: Vec<Option<Arc<RenderPipeline>>>,
-    device: Arc<Device>,
+use std::borrow::Cow;
+
+use super::{
+    bind_group_layout::BindGroupLayout,
+    pipeline_layout::PipelineLayout,
+    shader::{Shader, ShaderDefVal},
+    shader_module::ShaderModule,
+};
+
+#[derive(Default, Clone, Debug, Hash, Eq, PartialEq)]
+pub struct VertexBufferLayout {
+    /// The stride, in bytes, between elements of this buffer.
+    pub array_stride: BufferAddress,
+    /// How often this vertex buffer is "stepped" forward.
+    pub step_mode: VertexStepMode,
+    /// The list of attributes which comprise a single vertex.
+    pub attributes: Vec<VertexAttribute>,
 }
 
-impl PipelineCache {
-    pub fn new(device: Arc<Device>) -> Self {
-        Self {
-            rp_handle_to_pipeline: Default::default(),
-            rp_descs_to_handle: Default::default(),
-            render_pipelines: Default::default(),
-            device,
-        }
-    }
-
-    pub fn get_render_pipeline(&self, handle: &RenderPipelineHandle) -> Arc<RenderPipeline> {
-        self.rp_handle_to_pipeline
-            .get(handle)
-            .unwrap()
-            .pipeline
-            .clone()
-            .unwrap()
-    }
-
-    pub fn register_render_pipeline(
-        &mut self,
-        desc: RenderPipelineDescriptor,
-    ) -> RenderPipelineHandle {
-        if let Some(handle) = self.rp_descs_to_handle.get(&desc) {
-            *handle
-        } else {
-            let handle = self.render_pipelines.len();
-            let handle = RenderPipelineHandle(handle);
-
-            //todo async
-
-            let pipeline = Some(Arc::new(self.device.create_render_pipeline(desc.clone())));
-
-            self.render_pipelines.push(pipeline.clone());
-
-            self.rp_handle_to_pipeline
-                .insert(handle, RenderPipelineState { pipeline });
-
-            self.rp_descs_to_handle.insert(desc, handle);
-
-            handle
-        }
-    }
-}
-
-#[derive(Default)]
-pub struct RenderPipelineState {
-    pipeline: Option<Arc<RenderPipeline>>,
-}
-
-#[derive(Debug, Hash, PartialEq, Clone, Copy, Eq)]
-pub struct RenderPipelineHandle(usize);
-
-#[derive(Debug, PartialEq, Hash, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct RenderPipelineDescriptor {
-    pub label: Option<String>,
+    pub label: Option<Cow<'static, str>>,
+    /// The layout of bind groups for this pipeline.
+    pub layout: Vec<BindGroupLayout>,
+    pub push_constant_ranges: Vec<PushConstantRange>,
+    pub vertex: VertexState,
+    pub fragment: Option<FragmentState>,
 }
 
-pub trait RenderPipelineTrait: 'static + Any + Debug + Sync + Send {}
+pub struct RenderPipelineDescriptorState<'a> {
+    pub vertex_module: &'a ShaderModule,
+    pub fragment_module: Option<&'a ShaderModule>,
+    pub layout: Option<&'a PipelineLayout>,
+    pub desc: RenderPipelineDescriptor,
+}
 
-pub struct RenderPipeline(Box<dyn RenderPipelineTrait>);
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VertexState {
+    pub shader: Resource<Shader>,
+    pub shader_defs: Vec<ShaderDefVal>,
+    pub entry_point: Cow<'static, str>,
+    pub buffers: Vec<VertexBufferLayout>,
+}
 
-downcast!(dyn RenderPipelineTrait);
-
-impl RenderPipeline {
-    pub fn new<T: RenderPipelineTrait>(pipeline: T) -> Self {
-        RenderPipeline(Box::new(pipeline))
-    }
-
-    pub fn downcast<T: RenderPipelineTrait>(self) -> Option<Box<T>> {
-        let value: Option<Box<T>> = self.0.downcast::<T>().ok();
-        value
-    }
-
-    pub fn downcast_ref<T: RenderPipelineTrait>(&self) -> Option<&T> {
-        let value: Option<&T> = self.0.downcast_ref::<T>().ok();
-        value
-    }
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FragmentState {
+    /// The compiled shader module for this stage.
+    pub shader: Resource<Shader>,
+    pub shader_defs: Vec<ShaderDefVal>,
+    /// The name of the entry point in the compiled shader. There must be a
+    /// function with this name in the shader.
+    pub entry_point: Cow<'static, str>,
+    /// The color state of the render targets.
+    pub targets: Vec<Option<ColorTargetState>>,
 }

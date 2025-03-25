@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
+use fyrox_core::task::TaskPool;
+use fyrox_resource::manager::ResourceManager;
 use tiny_renderer::{
     gfx_base::device::Device,
     gfx_wgpu::WgpuDevice,
     graphic_context::{GraphicContext, GraphicContextParams},
-    renderer::Renderer,
 };
 use winit::{
     application::ApplicationHandler,
@@ -19,6 +20,7 @@ struct State {
     // queue: wgpu::Queue,
     size: winit::dpi::PhysicalSize<u32>,
     graphic_context: GraphicContext,
+    _resource_manager: ResourceManager,
 }
 
 impl State {
@@ -55,18 +57,26 @@ impl State {
 
         let device = WgpuDevice::new(device, surface, surface_format, queue);
         let device = Arc::new(Device::new(device));
-        let renderer = Renderer::new(device.clone());
+
+        let task_pool = Arc::new(TaskPool::new());
+        let resource_manager = ResourceManager::new(task_pool);
 
         let mut graphic_context = GraphicContext::Uninitialization(GraphicContextParams {});
 
-        graphic_context.initialization(renderer);
+        let (shader_event_sender, shader_event_receiver) = std::sync::mpsc::channel();
+
+        resource_manager
+            .state()
+            .event_broadcaster
+            .add(shader_event_sender);
+
+        graphic_context.initialization(device, shader_event_receiver, surface_format);
 
         State {
             window,
-            // device,
-            // queue,
             size,
             graphic_context,
+            _resource_manager: resource_manager,
         }
     }
 
@@ -79,7 +89,7 @@ impl State {
     }
 
     fn render(&mut self) {
-        self.graphic_context.render();
+        self.graphic_context.render(0.0);
 
         // Renders a GREEN screen
         // let mut encoder = self.device.create_command_encoder(&Default::default());

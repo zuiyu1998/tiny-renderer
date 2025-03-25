@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::gfx_base::{color_attachment::ColorAttachment, handle::TypeHandle};
 
 use super::{
@@ -21,6 +23,22 @@ pub struct PassNode {
 
     //render pass 配置
     pub color_attachments: Vec<ColorAttachment>,
+}
+
+impl Debug for PassNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PassNode")
+            .field("name", &self.name)
+            .field("handle", &self.handle)
+            .field("render_fn", &self.render_fn.is_some())
+            .field("writes", &self.writes)
+            .field("reads", &self.reads)
+            .field("insert_point", &self.insert_point)
+            .field("resource_request_array", &self.resource_request_array)
+            .field("resource_release_array", &self.resource_release_array)
+            .field("color_attachments", &self.color_attachments)
+            .finish()
+    }
 }
 
 impl PassNode {

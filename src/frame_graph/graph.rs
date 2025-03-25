@@ -8,7 +8,7 @@ use super::{
 use crate::gfx_base::{
     device::Device,
     handle::TypeHandle,
-    pipeline::{PipelineCache, RenderPipeline, RenderPipelineDescriptor, RenderPipelineHandle},
+    pipeline::{CachedRenderPipelineId, PipelineCache, RenderPipeline, RenderPipelineDescriptor},
     transient_resource_cache::TransientResourceCache,
 };
 
@@ -32,9 +32,11 @@ pub enum AnyFGResourceDescriptor {
     SwapChain(SwapChainDescriptor),
 }
 
+#[derive(Debug)]
 pub enum AnyFGResource {
     OwnedTexture(Texture),
-    ImportedSwapChain(Arc<SwapChain>),
+    ImportedTexture(Arc<Texture>),
+    OwnedSwapChain(SwapChain),
 }
 
 pub trait FGResource: 'static + Debug {
@@ -72,8 +74,19 @@ pub struct ExecutingFrameGraph {
     pipelines: CompiledPipelines,
 }
 
+pub struct RetiredFrameGraph {
+    resource_table: ResourceTable,
+}
+
+impl RetiredFrameGraph {
+    pub fn release_resources(self, transient_resource_cache: &mut TransientResourceCache) {
+        self.resource_table
+            .release_resources(transient_resource_cache);
+    }
+}
+
 impl ExecutingFrameGraph {
-    pub fn execute(&mut self, device: &Device, pipeline_cache: &PipelineCache) {
+    pub fn execute(mut self, device: &Device, pipeline_cache: &PipelineCache) -> RetiredFrameGraph {
         let mut render_context = RenderContext::new(
             &mut self.resource_table,
             device,
@@ -85,6 +98,10 @@ impl ExecutingFrameGraph {
         for i in 0..self.device_passes.len() {
             let device_pass = &mut self.device_passes[i];
             device_pass.execute(&mut render_context);
+        }
+
+        RetiredFrameGraph {
+            resource_table: self.resource_table,
         }
     }
 
@@ -103,23 +120,26 @@ impl ExecutingFrameGraph {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct CompiledPipelines {
-    pub render_pipelines: Vec<RenderPipelineHandle>,
+    pub render_pipeline_ids: Vec<CachedRenderPipelineId>,
 }
 
+#[derive(Debug)]
 pub struct CompiledFrameGraph {
     fg: FrameGraph,
     resource_table: ResourceTable,
     device_passes: Vec<DevicePass>,
+    pipelines: CompiledPipelines,
 }
 
 impl CompiledFrameGraph {
-    pub fn new(fg: FrameGraph) -> Self {
+    pub fn new(fg: FrameGraph, pipelines: CompiledPipelines) -> Self {
         CompiledFrameGraph {
             fg,
             resource_table: ResourceTable::default(),
             device_passes: vec![],
+            pipelines,
         }
     }
 
@@ -127,7 +147,6 @@ impl CompiledFrameGraph {
         mut self,
         device: &Device,
         transient_resource_cache: &mut TransientResourceCache,
-        pipeline_cache: &mut PipelineCache,
     ) -> ExecutingFrameGraph {
         for index in 0..self.fg.pass_nodes.len() {
             let pass_node_handle = self.fg.pass_nodes[index].handle.clone();
@@ -140,7 +159,7 @@ impl CompiledFrameGraph {
             {
                 let resource = self.fg.get_resource(&resource_handle);
                 self.resource_table
-                    .release_resources(resource, device, transient_resource_cache);
+                    .request_resources(resource, device, transient_resource_cache);
             }
 
             let mut device_pass = DevicePass::default();
@@ -149,23 +168,16 @@ impl CompiledFrameGraph {
             self.device_passes.push(device_pass);
         }
 
-        let render_pipelines: Vec<RenderPipelineHandle> = self
-            .fg
-            .render_pipeline_descs
-            .into_iter()
-            .map(|desc| pipeline_cache.register_render_pipeline(desc))
-            .collect();
-
         ExecutingFrameGraph::new(
             self.resource_table,
             self.device_passes,
             self.fg.resource_board,
-            CompiledPipelines { render_pipelines },
+            self.pipelines,
         )
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct FrameGraph {
     pub(crate) pass_nodes: Vec<PassNode>,
     resources: Vec<Resource>,
@@ -175,6 +187,18 @@ pub struct FrameGraph {
 }
 
 impl FrameGraph {
+    pub fn compiled_pipelines(&self, pipeline_cache: &mut PipelineCache) -> CompiledPipelines {
+        let render_pipeline_ids: Vec<CachedRenderPipelineId> = self
+            .render_pipeline_descs
+            .iter()
+            .map(|desc| pipeline_cache.register_render_pipeline(desc.clone()))
+            .collect();
+
+        CompiledPipelines {
+            render_pipeline_ids,
+        }
+    }
+
     pub fn compute_resource_lifetime(&mut self) {
         for pass_node in self.pass_nodes.iter_mut() {
             //更新渲染节点读取的资源节点所指向资源的生命周期
@@ -221,7 +245,7 @@ impl FrameGraph {
             .sort_by(|a, b| a.insert_point.cmp(&b.insert_point));
     }
 
-    pub fn compile(mut self) -> Option<CompiledFrameGraph> {
+    pub fn compile(mut self, pipeline_cache: &mut PipelineCache) -> Option<CompiledFrameGraph> {
         if self.pass_nodes.is_empty() {
             return None;
         }
@@ -231,7 +255,9 @@ impl FrameGraph {
 
         self.compute_resource_lifetime();
 
-        Some(CompiledFrameGraph::new(self))
+        let pipelines = self.compiled_pipelines(pipeline_cache);
+
+        Some(CompiledFrameGraph::new(self, pipelines))
     }
 }
 

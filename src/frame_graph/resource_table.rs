@@ -9,8 +9,10 @@ use crate::{
     },
 };
 
+use super::AnyFGResourceDescriptor;
+
 ///用于渲染的资源表
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct ResourceTable {
     resources: HashMap<RawTypeHandle, AnyFGResource>,
 }
@@ -34,7 +36,7 @@ impl ResourceTable {
             .map(|any| ResourceType::borrow_resource_mut(any))
     }
 
-    pub fn release_resources(
+    pub fn request_resources(
         &mut self,
         resource: &Resource,
         device: &Device,
@@ -43,8 +45,8 @@ impl ResourceTable {
         let handle = resource.get_info().handle.raw_handle();
         let resource = if let Some(resource) = resource.get_imported_resource() {
             match resource {
-                ImportedResource::SwapChain(resource) => {
-                    AnyFGResource::ImportedSwapChain(resource.clone())
+                ImportedResource::Texture(resource) => {
+                    AnyFGResource::ImportedTexture(resource.clone())
                 }
             }
         } else {
@@ -56,5 +58,23 @@ impl ResourceTable {
         };
 
         self.resources.insert(handle, resource);
+    }
+
+    pub fn release_resources(self, transient_resource_cache: &mut TransientResourceCache) {
+        for resource in self.resources.into_values() {
+            match resource {
+                AnyFGResource::OwnedSwapChain(swap_chain) => {
+                    swap_chain.present();
+                }
+
+                AnyFGResource::OwnedTexture(texture) => {
+                    transient_resource_cache.insert_resource(
+                        AnyFGResourceDescriptor::Texture(texture.get_desc().clone()),
+                        AnyFGResource::OwnedTexture(texture),
+                    );
+                }
+                _ => {}
+            }
+        }
     }
 }

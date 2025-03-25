@@ -1,7 +1,5 @@
-use std::sync::Arc;
-
 use crate::{
-    RendererError,
+    error::{RendererError, Result},
     frame_graph::{CompiledPipelines, FGResource, ResourceBoard},
     gfx_base::{
         color_attachment::ColorAttachmentView,
@@ -49,8 +47,11 @@ impl<'a> RenderContext<'a> {
         swap_chain.get_texture_view()
     }
 
-    pub fn get_render_pipeline(&self, handle: &TypeHandle<RenderPipeline>) -> Arc<RenderPipeline> {
-        let handle = self.pipelines.render_pipelines[handle.index()];
+    pub fn get_render_pipeline(
+        &self,
+        handle: &TypeHandle<RenderPipeline>,
+    ) -> Option<&RenderPipeline> {
+        let handle = self.pipelines.render_pipeline_ids[handle.index()];
         self.pipeline_cache.get_render_pipeline(&handle)
     }
 

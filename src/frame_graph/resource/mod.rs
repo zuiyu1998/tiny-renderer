@@ -9,10 +9,12 @@ pub use texture::*;
 use super::{AnyFGResourceDescriptor, FGResource, pass_node::PassNode};
 use crate::gfx_base::handle::TypeHandle;
 
+#[derive(Debug)]
 pub enum ImportedResource {
-    SwapChain(Arc<SwapChain>),
+    Texture(Arc<Texture>),
 }
 
+#[derive(Debug)]
 pub struct Resource {
     state: ResourceState,
     info: ResourceInfo,
@@ -73,7 +75,7 @@ impl Resource {
 }
 
 ///记录资源被使用的必要信息
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ResourceInfo {
     ///唯一的资源名称
     pub name: String,
@@ -117,11 +119,13 @@ impl ResourceInfo {
     }
 }
 
+#[derive(Debug)]
 pub struct ImportedResourceState {
     desc: AnyFGResourceDescriptor,
     resource: ImportedResource,
 }
 
+#[derive(Debug)]
 pub enum ResourceState {
     Created(AnyFGResourceDescriptor),
     Imported(ImportedResourceState),

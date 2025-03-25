@@ -1,17 +1,24 @@
-mod render_pipeline;
+pub mod bind_group_layout;
+pub mod device;
+pub mod pipeline_layout;
+pub mod render_pipeline;
+pub mod shader_module;
 
+pub use bind_group_layout::*;
+pub use device::*;
+pub use pipeline_layout::*;
 pub use render_pipeline::*;
+pub use shader_module::*;
 
 use std::{ops::Range, sync::Mutex};
 use wgpu::SurfaceTexture;
 
 use crate::{
-    frame_graph::{SwapChain, SwapChainDescriptor, SwapChainTrait},
+    frame_graph::SwapChainTrait,
     gfx_base::{
-        command_buffer::{CommandBuffer, CommandBufferTrait},
-        device::DeviceTrait,
-        pipeline::{RenderPipeline, RenderPipelineDescriptor},
-        render_pass::{RenderPass, RenderPassDescriptor, RenderPassTrait},
+        command_buffer::CommandBufferTrait,
+        pipeline::RenderPipeline,
+        render_pass::{RenderPass, RenderPassTrait},
         texture_view::{TextureView, TextureViewTrait},
     },
 };
@@ -55,29 +62,6 @@ impl RenderPassTrait for WgpuRenderPass {
     }
 }
 
-pub struct WgpuDevice {
-    device: wgpu::Device,
-    surface: wgpu::Surface<'static>,
-    surface_format: wgpu::TextureFormat,
-    queue: wgpu::Queue,
-}
-
-impl WgpuDevice {
-    pub fn new(
-        device: wgpu::Device,
-        surface: wgpu::Surface<'static>,
-        surface_format: wgpu::TextureFormat,
-        queue: wgpu::Queue,
-    ) -> Self {
-        WgpuDevice {
-            device,
-            surface,
-            surface_format,
-            queue,
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct WgpuSwapChain {
     surface_texture: Mutex<Option<SurfaceTexture>>,
@@ -105,141 +89,5 @@ impl SwapChainTrait for WgpuSwapChain {
             });
 
         TextureView::new(WgpuTextView(view))
-    }
-}
-
-impl DeviceTrait for WgpuDevice {
-    fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain {
-        let surface_texture = self
-            .surface
-            .get_current_texture()
-            .expect("failed to acquire next swapchain texture");
-
-        let swap_chain = WgpuSwapChain {
-            surface_texture: Mutex::new(Some(surface_texture)),
-            surface_format: self.surface_format,
-        };
-
-        SwapChain::new(desc, swap_chain)
-    }
-
-    fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass {
-        let mut color_attachments = vec![];
-
-        for color_attachment in desc.color_attachments.iter() {
-            let texture_view = color_attachment
-                .view
-                .get_texture_view()
-                .downcast_ref::<WgpuTextView>()
-                .unwrap();
-
-            color_attachments.push(Some(wgpu::RenderPassColorAttachment {
-                view: &texture_view.0,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
-                    store: wgpu::StoreOp::Store,
-                },
-            }));
-        }
-
-        let mut encoder = self.device.create_command_encoder(&Default::default());
-        let render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &color_attachments,
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
-
-        let render_pass = render_pass.forget_lifetime();
-
-        RenderPass::new(WgpuRenderPass {
-            render_pass,
-            encoder,
-        })
-    }
-
-    fn submit(&self, command_buffers: Vec<CommandBuffer>) {
-        let command_buffers = command_buffers
-            .into_iter()
-            .map(|command_buffer| {
-                let wgpu_command_buffer: Box<WgpuCommandBuffer> =
-                    command_buffer.downcast().unwrap();
-                wgpu_command_buffer.0.unwrap()
-            })
-            .collect::<Vec<wgpu::CommandBuffer>>();
-
-        self.queue.submit(command_buffers);
-    }
-
-    fn create_render_pipeline(&self, _desc: RenderPipelineDescriptor) -> RenderPipeline {
-        let shader = self
-            .device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("Shader"),
-                source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
-            });
-
-        let render_pipeline_layout =
-            self.device
-                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: Some("Render Pipeline Layout"),
-                    bind_group_layouts: &[],
-                    push_constant_ranges: &[],
-                });
-
-        let render_pipeline = self
-            .device
-            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("Render Pipeline"),
-                layout: Some(&render_pipeline_layout),
-                vertex: wgpu::VertexState {
-                    module: &shader,
-                    entry_point: Some("vs_main"),
-                    compilation_options: Default::default(),
-                    buffers: &[],
-                },
-                fragment: Some(wgpu::FragmentState {
-                    module: &shader,
-                    entry_point: Some("fs_main"),
-                    compilation_options: Default::default(),
-                    targets: &[Some(wgpu::ColorTargetState {
-                        format: self.surface_format.add_srgb_suffix(),
-                        blend: Some(wgpu::BlendState {
-                            color: wgpu::BlendComponent::REPLACE,
-                            alpha: wgpu::BlendComponent::REPLACE,
-                        }),
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })],
-                }),
-                primitive: wgpu::PrimitiveState {
-                    topology: wgpu::PrimitiveTopology::TriangleList,
-                    strip_index_format: None,
-                    front_face: wgpu::FrontFace::Ccw,
-                    cull_mode: Some(wgpu::Face::Back),
-                    polygon_mode: wgpu::PolygonMode::Fill,
-                    // Requires Features::DEPTH_CLIP_CONTROL
-                    unclipped_depth: false,
-                    // Requires Features::CONSERVATIVE_RASTERIZATION
-                    conservative: false,
-                },
-                depth_stencil: None,
-                multisample: wgpu::MultisampleState {
-                    count: 1,
-                    mask: !0,
-                    alpha_to_coverage_enabled: false,
-                },
-                // If the pipeline will be used with a multiview render pass, this
-                // indicates how many array layers the attachments will have.
-                multiview: None,
-                cache: None,
-            });
-
-        RenderPipeline::new(WgpuRenderPipeline::new(render_pipeline))
-    }
-
-    fn create_command_buffer(&self) -> CommandBuffer {
-        CommandBuffer::new(WgpuCommandBuffer(None))
     }
 }

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::frame_graph::{AnyFGResource, AnyFGResourceDescriptor};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct TransientResourceCache {
     resources: HashMap<AnyFGResourceDescriptor, Vec<AnyFGResource>>,
 }
