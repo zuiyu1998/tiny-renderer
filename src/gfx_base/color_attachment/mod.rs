@@ -2,7 +2,6 @@ use crate::frame_graph::Resource;
 
 use super::{handle::TypeHandle, texture_view::TextureView};
 
-#[derive(Debug)]
 pub enum ColorAttachmentView {
     Uninitialization(TypeHandle<Resource>),
     Initialization(TextureView),
@@ -23,7 +22,6 @@ impl ColorAttachmentView {
     }
 }
 
-#[derive(Debug)]
 pub struct ColorAttachment {
     pub view: ColorAttachmentView,
 }

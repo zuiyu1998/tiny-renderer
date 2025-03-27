@@ -78,8 +78,8 @@ impl InitializationGraphicContext {
                 view: ColorAttachmentView::new(swap_chain_read_ref.resource_handle()),
             });
 
-            builder.render(move |render_pass, api| {
-                let pipeline = api.get_render_pipeline(&pipeline_handle).unwrap();
+            builder.render(move |render_pass, context| {
+                let pipeline = context.get_render_pipeline(&pipeline_handle).unwrap();
                 render_pass.set_render_pipeline(pipeline);
                 render_pass.draw(0..3, 0..1);
 

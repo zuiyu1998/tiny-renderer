@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
+use crate::gfx_base::device::Device;
 use crate::gfx_base::pipeline::PipelineCache;
-use crate::gfx_base::{device::Device, transient_resource_cache::TransientResourceCache};
 
-use crate::frame_graph::{CompiledFrameGraph, FrameGraph};
+use crate::frame_graph::{CompiledFrameGraph, FrameGraph, TransientResourceCache};
 
-#[derive(Debug)]
 pub struct Renderer {
     compiled_fg: Option<CompiledFrameGraph>,
     device: Arc<Device>,

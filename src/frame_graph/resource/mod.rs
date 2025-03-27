@@ -14,21 +14,13 @@ pub enum ImportedResource {
     Texture(Arc<Texture>),
 }
 
-#[derive(Debug)]
 pub struct Resource {
-    state: ResourceState,
-    info: ResourceInfo,
+    pub state: ResourceState,
+    pub info: ResourceInfo,
 }
 
 impl Resource {
-    pub fn get_imported_resource(&self) -> Option<&ImportedResource> {
-        match &self.state {
-            ResourceState::Created(_) => None,
-            ResourceState::Imported(imported) => Some(&imported.resource),
-        }
-    }
-
-    pub fn new_created<ResourceType: FGResource>(
+    pub fn setup<ResourceType: FGResource>(
         name: &str,
         handle: TypeHandle<Resource>,
         desc: ResourceType::Descriptor,
@@ -36,7 +28,7 @@ impl Resource {
         let info = ResourceInfo::new(name, handle);
 
         Resource {
-            state: ResourceState::Created(desc.into()),
+            state: ResourceState::Setup(desc.into()),
             info,
         }
     }
@@ -57,25 +49,10 @@ impl Resource {
             info,
         }
     }
-
-    pub fn get_info(&self) -> &ResourceInfo {
-        &self.info
-    }
-
-    pub fn get_info_mut(&mut self) -> &mut ResourceInfo {
-        &mut self.info
-    }
-
-    pub fn get_desc(&self) -> AnyFGResourceDescriptor {
-        match &self.state {
-            ResourceState::Created(desc) => desc.clone(),
-            ResourceState::Imported(imported) => imported.desc.clone(),
-        }
-    }
 }
 
 ///记录资源被使用的必要信息
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ResourceInfo {
     ///唯一的资源名称
     pub name: String,
@@ -112,7 +89,7 @@ impl ResourceInfo {
 
     pub fn update_lifetime(&mut self, handle: TypeHandle<PassNode>) {
         if self.first_pass_node_handle.is_none() {
-            self.first_pass_node_handle = Some(handle.clone());
+            self.first_pass_node_handle = Some(handle);
         }
 
         self.last_pass_node_handle = Some(handle)
@@ -121,12 +98,12 @@ impl ResourceInfo {
 
 #[derive(Debug)]
 pub struct ImportedResourceState {
-    desc: AnyFGResourceDescriptor,
-    resource: ImportedResource,
+    pub desc: AnyFGResourceDescriptor,
+    pub resource: ImportedResource,
 }
 
 #[derive(Debug)]
 pub enum ResourceState {
-    Created(AnyFGResourceDescriptor),
+    Setup(AnyFGResourceDescriptor),
     Imported(ImportedResourceState),
 }

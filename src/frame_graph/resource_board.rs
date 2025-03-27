@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::RawResourceNodeHandle;
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct ResourceBoard {
     resources: HashMap<String, RawResourceNodeHandle>,
 }

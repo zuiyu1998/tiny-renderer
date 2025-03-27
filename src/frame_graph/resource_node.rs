@@ -12,11 +12,11 @@ pub struct ResourceRef<ResourceType, ViewType> {
 
 impl<ResourceType, ViewType> ResourceRef<ResourceType, ViewType> {
     pub fn resource_node_handle(&self) -> TypeHandle<ResourceNode> {
-        self.handle.resource_node_handle.clone()
+        self.handle.resource_node_handle
     }
 
     pub fn resource_handle(&self) -> TypeHandle<Resource> {
-        self.handle.resource_handle.clone()
+        self.handle.resource_handle
     }
 
     pub fn new(handle: ResourceNodeHandle<ResourceType>) -> Self {
@@ -43,7 +43,7 @@ impl GpuViewType for GpuWrite {
     const IS_WRITABLE: bool = true;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct RawResourceNodeHandle {
     resource_node_handle: TypeHandle<ResourceNode>,
     resource_handle: TypeHandle<Resource>,
@@ -52,8 +52,8 @@ pub struct RawResourceNodeHandle {
 impl<ResourceType> From<RawResourceNodeHandle> for ResourceNodeHandle<ResourceType> {
     fn from(value: RawResourceNodeHandle) -> Self {
         ResourceNodeHandle {
-            resource_node_handle: value.resource_node_handle.clone(),
-            resource_handle: value.resource_handle.clone(),
+            resource_node_handle: value.resource_node_handle,
+            resource_handle: value.resource_handle,
             _marker: PhantomData,
         }
     }
@@ -61,15 +61,14 @@ impl<ResourceType> From<RawResourceNodeHandle> for ResourceNodeHandle<ResourceTy
 
 impl RawResourceNodeHandle {
     pub fn resource_node_handle(&self) -> TypeHandle<ResourceNode> {
-        self.resource_node_handle.clone()
+        self.resource_node_handle
     }
 
     pub fn resource_handle(&self) -> TypeHandle<Resource> {
-        self.resource_handle.clone()
+        self.resource_handle
     }
 }
 
-#[derive(Debug)]
 pub struct ResourceNodeHandle<ResourceType> {
     resource_node_handle: TypeHandle<ResourceNode>,
     resource_handle: TypeHandle<Resource>,
@@ -85,11 +84,11 @@ impl<ResourceType> ResourceNodeHandle<ResourceType> {
     }
 
     pub fn resource_node_handle(&self) -> TypeHandle<ResourceNode> {
-        self.resource_node_handle.clone()
+        self.resource_node_handle
     }
 
     pub fn resource_handle(&self) -> TypeHandle<Resource> {
-        self.resource_handle.clone()
+        self.resource_handle
     }
 
     pub fn new(
@@ -107,8 +106,8 @@ impl<ResourceType> ResourceNodeHandle<ResourceType> {
 impl<ResourceType> Clone for ResourceNodeHandle<ResourceType> {
     fn clone(&self) -> Self {
         ResourceNodeHandle {
-            resource_node_handle: self.resource_node_handle.clone(),
-            resource_handle: self.resource_handle.clone(),
+            resource_node_handle: self.resource_node_handle,
+            resource_handle: self.resource_handle,
             _marker: PhantomData,
         }
     }
@@ -116,7 +115,6 @@ impl<ResourceType> Clone for ResourceNodeHandle<ResourceType> {
 
 impl<ResourceType> ResourceNodeHandle<ResourceType> {}
 
-#[derive(Debug)]
 pub struct ResourceNode {
     ///资源索引
     pub resource_handle: TypeHandle<Resource>,

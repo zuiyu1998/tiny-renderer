@@ -8,7 +8,7 @@ use super::{
     pipeline::RenderPipeline,
 };
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct RenderPassDescriptor {
     pub color_attachments: Vec<ColorAttachment>,
 }

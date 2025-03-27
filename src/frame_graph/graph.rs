@@ -3,13 +3,12 @@ use std::sync::Arc;
 use super::{
     DevicePass, ImportedResource, PassNode, RenderContext, Resource, ResourceBoard, ResourceInfo,
     ResourceNode, ResourceNodeHandle, ResourceTable, SwapChain, SwapChainDescriptor, Texture,
-    TextureDescriptor, pass_node_builder::PassNodeBuilder,
+    TextureDescriptor, TransientResourceCache, pass_node_builder::PassNodeBuilder,
 };
 use crate::gfx_base::{
     device::Device,
     handle::TypeHandle,
     pipeline::{CachedRenderPipelineId, PipelineCache, RenderPipeline, RenderPipelineDescriptor},
-    transient_resource_cache::TransientResourceCache,
 };
 
 use std::{fmt::Debug, hash::Hash};
@@ -18,12 +17,7 @@ pub trait ImportToFrameGraph
 where
     Self: Sized + FGResource,
 {
-    fn import(
-        self: Arc<Self>,
-        name: &str,
-        desc: Self::Descriptor,
-        fg: &mut FrameGraph,
-    ) -> ResourceNodeHandle<Self>;
+    fn import(self: Arc<Self>) -> ImportedResource;
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -125,7 +119,6 @@ pub struct CompiledPipelines {
     pub render_pipeline_ids: Vec<CachedRenderPipelineId>,
 }
 
-#[derive(Debug)]
 pub struct CompiledFrameGraph {
     fg: FrameGraph,
     resource_table: ResourceTable,
@@ -149,7 +142,7 @@ impl CompiledFrameGraph {
         transient_resource_cache: &mut TransientResourceCache,
     ) -> ExecutingFrameGraph {
         for index in 0..self.fg.pass_nodes.len() {
-            let pass_node_handle = self.fg.pass_nodes[index].handle.clone();
+            let pass_node_handle = self.fg.pass_nodes[index].handle;
 
             for resource_handle in self
                 .fg
@@ -177,7 +170,7 @@ impl CompiledFrameGraph {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct FrameGraph {
     pub(crate) pass_nodes: Vec<PassNode>,
     resources: Vec<Resource>,
@@ -205,24 +198,21 @@ impl FrameGraph {
             for resource_node_handle in pass_node.reads.iter() {
                 let resource_node = &self.resource_nodes[resource_node_handle.index()];
                 let resource = &mut self.resources[resource_node.resource_handle.index()];
-                resource
-                    .get_info_mut()
-                    .update_lifetime(pass_node.handle.clone());
+                resource.info.update_lifetime(pass_node.handle);
             }
 
             //更新渲染节点吸入的资源节点所指向资源的生命周期
             for resource_node_handle in pass_node.writes.iter() {
                 let resource_node = &self.resource_nodes[resource_node_handle.index()];
                 let resource = &mut self.resources[resource_node.resource_handle.index()];
-                let info = resource.get_info_mut();
-                info.update_lifetime(pass_node.handle.clone());
+                resource.info.update_lifetime(pass_node.handle);
             }
         }
 
         //更新pass_node中资源使用的索引顺序
         for resource_index in 0..self.resources.len() {
             let resource = &self.resources[resource_index];
-            let info = resource.get_info().clone();
+            let info = resource.info.clone();
 
             if info.first_pass_node_handle.is_none() || info.last_pass_node_handle.is_none() {
                 continue;
@@ -230,9 +220,7 @@ impl FrameGraph {
 
             let first_pass_node_handle = info.first_pass_node_handle.unwrap();
             let first_pass_node = &mut self.pass_nodes[first_pass_node_handle.index()];
-            first_pass_node
-                .resource_request_array
-                .push(info.handle.clone());
+            first_pass_node.resource_request_array.push(info.handle);
 
             let last_pass_node_handle = info.last_pass_node_handle.unwrap();
             let last_pass_node = &mut self.pass_nodes[last_pass_node_handle.index()];
@@ -321,13 +309,13 @@ impl FrameGraph {
         &mut self,
         resource_info: ResourceInfo,
     ) -> TypeHandle<ResourceNode> {
-        let resource_handle = resource_info.handle.clone();
+        let resource_handle = resource_info.handle;
         let version = resource_info.version();
 
         let handle = TypeHandle::new(self.resource_nodes.len());
 
         self.resource_nodes
-            .push(ResourceNode::new(handle.clone(), resource_handle, version));
+            .push(ResourceNode::new(handle, resource_handle, version));
 
         handle
     }
@@ -341,10 +329,11 @@ impl FrameGraph {
     where
         ResourceType: ImportToFrameGraph,
     {
-        ImportToFrameGraph::import(resource, name, desc, self)
+        let imported_resource = ImportToFrameGraph::import(resource);
+        self.imported(name, imported_resource, desc)
     }
 
-    pub(crate) fn _import<ResourceType>(
+    pub(crate) fn imported<ResourceType>(
         &mut self,
         name: &str,
         imported_resource: ImportedResource,
@@ -354,14 +343,10 @@ impl FrameGraph {
         ResourceType: FGResource,
     {
         let resource_handle = TypeHandle::new(self.resources.len());
-        let resource: Resource = Resource::new_imported::<ResourceType>(
-            name,
-            resource_handle.clone(),
-            desc,
-            imported_resource,
-        );
+        let resource: Resource =
+            Resource::new_imported::<ResourceType>(name, resource_handle, desc, imported_resource);
 
-        let resource_info = resource.get_info().clone();
+        let resource_info = resource.info.clone();
         self.resources.push(resource);
 
         let handle = self.create_resource_node(resource_info);
@@ -379,13 +364,13 @@ impl FrameGraph {
     {
         let resource_handle = TypeHandle::new(self.resources.len());
 
-        let resource: Resource = Resource::new_created::<DescriptorType::Resource>(
+        let resource: Resource = Resource::setup::<DescriptorType::Resource>(
             name,
-            resource_handle.clone(),
+            resource_handle,
             TypeEquals::same(desc),
         );
 
-        let resource_info = resource.get_info().clone();
+        let resource_info = resource.info.clone();
         self.resources.push(resource);
 
         let handle = self.create_resource_node(resource_info);

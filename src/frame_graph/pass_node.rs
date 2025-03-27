@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use crate::gfx_base::{color_attachment::ColorAttachment, handle::TypeHandle};
 
 use super::{
@@ -20,25 +18,8 @@ pub struct PassNode {
     pub resource_request_array: Vec<TypeHandle<Resource>>,
     ///使用资源的释放生命周期
     pub resource_release_array: Vec<TypeHandle<Resource>>,
-
     //render pass 配置
     pub color_attachments: Vec<ColorAttachment>,
-}
-
-impl Debug for PassNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("PassNode")
-            .field("name", &self.name)
-            .field("handle", &self.handle)
-            .field("render_fn", &self.render_fn.is_some())
-            .field("writes", &self.writes)
-            .field("reads", &self.reads)
-            .field("insert_point", &self.insert_point)
-            .field("resource_request_array", &self.resource_request_array)
-            .field("resource_release_array", &self.resource_release_array)
-            .field("color_attachments", &self.color_attachments)
-            .finish()
-    }
 }
 
 impl PassNode {
@@ -58,22 +39,20 @@ impl PassNode {
     pub fn write<ResourceType>(
         &mut self,
         graph: &mut FrameGraph,
-        out_handle: ResourceNodeHandle<ResourceType>,
+        resource_node_handle: ResourceNodeHandle<ResourceType>,
     ) -> ResourceRef<ResourceType, GpuWrite> {
         let resource_handle = graph
-            .get_resource_node(&out_handle.resource_node_handle())
-            .resource_handle
-            .clone();
+            .get_resource_node(&resource_node_handle.resource_node_handle())
+            .resource_handle;
         let resource = graph.get_resource_mut(&resource_handle);
-        resource.get_info_mut().new_version();
+        resource.info.new_version();
 
-        let resource_info = resource.get_info().clone();
+        let resource_info = resource.info.clone();
         let new_resource_node_handle = graph.create_resource_node(resource_info);
         let new_resource_node = graph.get_resource_node_mut(&new_resource_node_handle);
+        new_resource_node.pass_node_writer_handle = Some(self.handle);
 
-        new_resource_node.pass_node_writer_handle = Some(self.handle.clone());
-
-        self.writes.push(new_resource_node_handle.clone());
+        self.writes.push(new_resource_node_handle);
 
         ResourceRef::new(ResourceNodeHandle::new(
             new_resource_node_handle,
@@ -100,18 +79,17 @@ impl PassNode {
     pub fn read<ResourceType>(
         &mut self,
         graph: &FrameGraph,
-        input_handle: ResourceNodeHandle<ResourceType>,
+        resource_node_handle: ResourceNodeHandle<ResourceType>,
     ) -> ResourceRef<ResourceType, GpuRead> {
-        let resource_node_handle = input_handle.resource_node_handle();
+        let resource_node_handle = resource_node_handle.resource_node_handle();
 
         if !self.reads.contains(&resource_node_handle) {
-            self.reads.push(resource_node_handle.clone());
+            self.reads.push(resource_node_handle);
         }
 
         let resource_handle = graph
             .get_resource_node(&resource_node_handle)
-            .resource_handle
-            .clone();
+            .resource_handle;
 
         ResourceRef::new(ResourceNodeHandle::new(
             resource_node_handle,

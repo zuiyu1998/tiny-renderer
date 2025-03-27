@@ -5,11 +5,10 @@ use crate::{
     gfx_base::{
         device::Device,
         handle::{RawTypeHandle, TypeHandle},
-        transient_resource_cache::TransientResourceCache,
     },
 };
 
-use super::AnyFGResourceDescriptor;
+use super::{AnyFGResourceDescriptor, ResourceState, TransientResourceCache};
 
 ///用于渲染的资源表
 #[derive(Default, Debug)]
@@ -42,19 +41,19 @@ impl ResourceTable {
         device: &Device,
         transient_resource_cache: &mut TransientResourceCache,
     ) {
-        let handle = resource.get_info().handle.raw_handle();
-        let resource = if let Some(resource) = resource.get_imported_resource() {
-            match resource {
+        let handle = resource.info.handle.raw_handle();
+        let resource = match &resource.state {
+            ResourceState::Imported(state) => match &state.resource {
                 ImportedResource::Texture(resource) => {
                     AnyFGResource::ImportedTexture(resource.clone())
                 }
+            },
+            ResourceState::Setup(desc) => {
+                let desc = desc.clone();
+                transient_resource_cache
+                    .get_resource(&desc)
+                    .unwrap_or_else(|| device.create(desc))
             }
-        } else {
-            let desc = resource.get_desc();
-
-            transient_resource_cache
-                .get_resource(&desc)
-                .unwrap_or_else(|| device.create(desc))
         };
 
         self.resources.insert(handle, resource);

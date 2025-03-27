@@ -11,5 +11,5 @@ static STANDARD: LazyLock<BuiltInResource<Shader>> = LazyLock::new(|| {
 });
 
 pub fn get_test() -> &'static ShaderResource {
-   &STANDARD.resource
+    &STANDARD.resource
 }
