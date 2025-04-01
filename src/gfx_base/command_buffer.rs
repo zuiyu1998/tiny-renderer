@@ -1,25 +1,66 @@
-use downcast::{Any, downcast};
+use crate::{define_atomic_id, define_gfx_type};
 
-use super::render_pass::RenderPass;
-pub struct CommandBuffer(Box<dyn CommandBufferTrait>);
+use super::{device::Device, pipeline::RenderPipeline, render_pass::RenderPass};
+use downcast_rs::Downcast;
+use std::{fmt::Debug, ops::Range};
 
-pub trait CommandBufferTrait: 'static + Any + Sync + Send {
-    fn finish(&mut self, render_pass: RenderPass);
+define_atomic_id!(CommandBufferId);
+
+pub trait CommandBufferTrait: 'static + Sync + Send + Debug {
+    fn begin_render_pass(&mut self, device: &Device, render_pass: RenderPass);
+
+    fn set_render_pipeline(&mut self, render_pipeline: &RenderPipeline);
+
+    fn end_render_pass(&mut self);
+
+    fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>);
 }
 
-downcast!(dyn CommandBufferTrait);
+pub trait ErasedCommandBufferTrait: 'static + Sync + Send + Debug + Downcast {
+    fn begin_render_pass(&mut self, device: &Device, render_pass: RenderPass);
+    fn set_render_pipeline(&mut self, render_pipeline: &RenderPipeline);
+    fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>);
+
+    fn end_render_pass(&mut self);
+}
+
+impl<T: CommandBufferTrait> ErasedCommandBufferTrait for T {
+    fn begin_render_pass(&mut self, device: &Device, render_pass: RenderPass) {
+        <T as CommandBufferTrait>::begin_render_pass(self, device, render_pass);
+    }
+    fn set_render_pipeline(&mut self, render_pipeline: &RenderPipeline) {
+        <T as CommandBufferTrait>::set_render_pipeline(self, render_pipeline);
+    }
+    fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>) {
+        <T as CommandBufferTrait>::draw(self, vertices, instances);
+    }
+
+    fn end_render_pass(&mut self) {
+        <T as CommandBufferTrait>::end_render_pass(self);
+    }
+}
+
+define_gfx_type!(
+    CommandBuffer,
+    CommandBufferId,
+    CommandBufferTrait,
+    ErasedCommandBufferTrait
+);
 
 impl CommandBuffer {
-    pub fn new<T: CommandBufferTrait>(command_buffer: T) -> Self {
-        CommandBuffer(Box::new(command_buffer))
+    pub fn begin_render_pass(&mut self, device: &Device, render_pass: RenderPass) {
+        self.value.begin_render_pass(device, render_pass);
     }
 
-    pub fn downcast<T: CommandBufferTrait>(self) -> Option<Box<T>> {
-        let value: Option<Box<T>> = self.0.downcast::<T>().ok();
-        value
+    pub fn end_render_pass(&mut self) {
+        self.value.end_render_pass();
     }
 
-    pub fn finish(&mut self, render_pass: RenderPass) {
-        self.0.finish(render_pass);
+    pub fn set_render_pipeline(&mut self, render_pipeline: &RenderPipeline) {
+        self.value.set_render_pipeline(render_pipeline);
+    }
+
+    pub fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>)  {
+        self.value.draw(vertices, instances);
     }
 }

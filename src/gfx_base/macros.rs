@@ -40,39 +40,37 @@ macro_rules! define_atomic_id {
 
 #[macro_export]
 macro_rules! define_gfx_type {
-    ($downcast_type:ident, $downcast_type_id: ident, $downcast_type_trait: ident) => {
-        use downcast::downcast;
+    ($gfx_type:ident, $gfx_type_type_id: ident, $gfx_type_trait: ident, $erased_gfx_type_trait:ident) => {
+        use downcast_rs::impl_downcast;
 
         #[derive(Debug)]
-        pub struct $downcast_type {
-            id: $downcast_type_id,
-            instance: Box<dyn $downcast_type_trait>,
+        pub struct $gfx_type {
+            id: $gfx_type_type_id,
+            value: Box<dyn $erased_gfx_type_trait>,
         }
 
-        downcast!(dyn $downcast_type_trait);
+        impl_downcast!($erased_gfx_type_trait);
 
-        impl PartialEq for $downcast_type {
+        impl PartialEq for $gfx_type {
             fn eq(&self, other: &Self) -> bool {
                 self.id == other.id
             }
         }
 
-        impl $downcast_type {
-            pub fn new<T: $downcast_type_trait>(instance: T) -> Self {
-                $downcast_type {
-                    instance: Box::new(instance),
-                    id: $downcast_type_id::new(),
+        impl $gfx_type {
+            pub fn new<T: $gfx_type_trait>(value: T) -> Self {
+                $gfx_type {
+                    value: Box::new(value),
+                    id: $gfx_type_type_id::new(),
                 }
             }
 
-            pub fn downcast<T: $downcast_type_trait>(self) -> Option<Box<T>> {
-                let value: Option<Box<T>> = self.instance.downcast::<T>().ok();
-                value
+            pub fn downcast_ref<T: $gfx_type_trait>(&self) -> Option<&T> {
+                self.value.downcast_ref()
             }
 
-            pub fn downcast_ref<T: $downcast_type_trait>(&self) -> Option<&T> {
-                let value: Option<&T> = self.instance.downcast_ref::<T>().ok();
-                value
+            pub fn downcast<T: $gfx_type_trait>(self) -> Option<Box<T>> {
+                self.value.downcast().ok()
             }
         }
     };

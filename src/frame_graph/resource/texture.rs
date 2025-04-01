@@ -1,32 +1,21 @@
-use downcast::{Any, downcast};
+use downcast_rs::Downcast;
+
+use crate::{define_atomic_id, define_gfx_type};
 use std::fmt::Debug;
 
 use crate::frame_graph::{
     AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor,
 };
 
-pub trait TextureTrait: 'static + Debug + Any + Debug {}
+define_atomic_id!(TextureId);
 
-#[derive(Debug)]
-pub struct Texture(Box<dyn TextureTrait>);
+pub trait TextureTrait: 'static + Debug {}
 
-downcast!(dyn TextureTrait);
+pub trait ErasedTextureTrait: 'static + Downcast + Debug {}
 
-impl Texture {
-    pub fn new<T: TextureTrait>(view: T) -> Self {
-        Texture(Box::new(view))
-    }
+impl<T: TextureTrait> ErasedTextureTrait for T {}
 
-    pub fn downcast<T: TextureTrait>(self) -> Option<Box<T>> {
-        let value: Option<Box<T>> = self.0.downcast::<T>().ok();
-        value
-    }
-
-    pub fn downcast_ref<T: TextureTrait>(&self) -> Option<&T> {
-        let value: Option<&T> = self.0.downcast_ref::<T>().ok();
-        value
-    }
-}
+define_gfx_type!(Texture, TextureId, TextureTrait, ErasedTextureTrait);
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct TextureDescriptor {}

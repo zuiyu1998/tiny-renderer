@@ -11,6 +11,14 @@ pub struct TypeHandle<T> {
     _marker: PhantomData<T>,
 }
 
+impl<T> Debug for TypeHandle<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TypeHandle")
+            .field("index", &self.index)
+            .finish()
+    }
+}
+
 impl<T> PartialEq for TypeHandle<T> {
     fn eq(&self, other: &Self) -> bool {
         self.index == other.index && self._marker == other._marker

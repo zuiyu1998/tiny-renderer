@@ -7,7 +7,7 @@ use crate::{
     build_in::get_test,
     frame_graph::SwapChainDescriptor,
     gfx_base::{
-        color_attachment::{ColorAttachment, ColorAttachmentView},
+        color_attachment::ColorAttachment,
         device::Device,
         pipeline::{FragmentState, RenderPipelineDescriptor, VertexState},
         shader::Shader,
@@ -74,14 +74,11 @@ impl InitializationGraphicContext {
 
             let swap_chain_read_ref = builder.read(new_swap_chain);
 
-            builder.add_attachment(ColorAttachment {
-                view: ColorAttachmentView::new(swap_chain_read_ref.resource_handle()),
-            });
+            builder.add_attachment(ColorAttachment::SwapChain(swap_chain_read_ref));
 
-            builder.render(move |render_pass, context| {
-                let pipeline = context.get_render_pipeline(&pipeline_handle).unwrap();
-                render_pass.set_render_pipeline(pipeline);
-                render_pass.draw(0..3, 0..1);
+            builder.render(move |context| {
+                context.set_render_pipeline(&pipeline_handle);
+                context.draw(0..3, 0..1);
 
                 Ok(())
             });

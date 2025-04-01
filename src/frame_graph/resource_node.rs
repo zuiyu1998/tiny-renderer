@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{fmt::Debug, marker::PhantomData};
 
 use crate::gfx_base::handle::TypeHandle;
 
@@ -8,6 +8,23 @@ use super::{PassNode, Resource};
 pub struct ResourceRef<ResourceType, ViewType> {
     handle: ResourceNodeHandle<ResourceType>,
     _marker: PhantomData<ViewType>,
+}
+
+impl<ResourceType, ViewType> Debug for ResourceRef<ResourceType, ViewType> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ResourceRef")
+            .field("handle", &self.handle)
+            .finish()
+    }
+}
+
+impl<ResourceType, ViewType> Clone for ResourceRef<ResourceType, ViewType> {
+    fn clone(&self) -> Self {
+        ResourceRef {
+            handle: self.handle.clone(),
+            _marker: PhantomData,
+        }
+    }
 }
 
 impl<ResourceType, ViewType> ResourceRef<ResourceType, ViewType> {
@@ -73,6 +90,15 @@ pub struct ResourceNodeHandle<ResourceType> {
     resource_node_handle: TypeHandle<ResourceNode>,
     resource_handle: TypeHandle<Resource>,
     _marker: PhantomData<ResourceType>,
+}
+
+impl<ResourceType> Debug for ResourceNodeHandle<ResourceType> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ResourceNodeHandle")
+            .field("resource_node_handle", &self.resource_node_handle)
+            .field("resource_handle", &self.resource_handle)
+            .finish()
+    }
 }
 
 impl<ResourceType> ResourceNodeHandle<ResourceType> {

@@ -14,13 +14,13 @@ use crate::{
 };
 
 use super::{
-    WgpuCommandBuffer, WgpuPipelineLayout, WgpuRenderPass, WgpuRenderPipeline, WgpuShaderModule,
-    WgpuSwapChain, WgpuTextView,
+    WgpuCommandBuffer, WgpuPipelineLayout, WgpuRenderPipeline, WgpuShaderModule, WgpuSwapChain,
+    render_pass::WgpuRenderPass,
 };
 
 #[derive(Debug)]
 pub struct WgpuDevice {
-    device: wgpu::Device,
+    pub device: wgpu::Device,
     surface: wgpu::Surface<'static>,
     surface_format: wgpu::TextureFormat,
     queue: wgpu::Queue,
@@ -58,53 +58,21 @@ impl DeviceTrait for WgpuDevice {
     }
 
     fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass {
-        let mut color_attachments = vec![];
-
-        for color_attachment in desc.color_attachments.iter() {
-            let texture_view = color_attachment
-                .view
-                .get_texture_view()
-                .downcast_ref::<WgpuTextView>()
-                .unwrap();
-
-            color_attachments.push(Some(wgpu::RenderPassColorAttachment {
-                view: &texture_view.0,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
-                    store: wgpu::StoreOp::Store,
-                },
-            }));
-        }
-
-        let mut encoder = self.device.create_command_encoder(&Default::default());
-        let render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &color_attachments,
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
-
-        let render_pass = render_pass.forget_lifetime();
-
-        RenderPass::new(WgpuRenderPass {
-            render_pass,
-            encoder,
-        })
+        RenderPass::new(WgpuRenderPass::new(desc))
     }
 
     fn submit(&self, command_buffers: Vec<CommandBuffer>) {
-        let command_buffers = command_buffers
-            .into_iter()
-            .map(|command_buffer| {
-                let wgpu_command_buffer: Box<WgpuCommandBuffer> =
-                    command_buffer.downcast().unwrap();
-                wgpu_command_buffer.0.unwrap()
-            })
-            .collect::<Vec<wgpu::CommandBuffer>>();
+        let mut targets = vec![];
 
-        self.queue.submit(command_buffers);
+        for command_buffer in command_buffers.into_iter() {
+            let mut command_buffer = command_buffer.downcast::<WgpuCommandBuffer>().unwrap();
+
+            if let Some(command_buffer) = command_buffer.command_buffer.take() {
+                targets.push(command_buffer);
+            }
+        }
+
+        self.queue.submit(targets);
     }
 
     fn create_render_pipeline(&self, state: RenderPipelineDescriptorState) -> RenderPipeline {
@@ -185,7 +153,7 @@ impl DeviceTrait for WgpuDevice {
     }
 
     fn create_command_buffer(&self) -> CommandBuffer {
-        CommandBuffer::new(WgpuCommandBuffer(None))
+        CommandBuffer::new(WgpuCommandBuffer::default())
     }
 
     fn create_shader_module(&self, desc: ShaderModuleDescriptor) -> ShaderModule {

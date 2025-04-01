@@ -1,19 +1,20 @@
+use std::ops::Range;
+
 use crate::{
     error::{RendererError, Result},
     frame_graph::{CompiledPipelines, FGResource, ResourceBoard},
     gfx_base::{
-        color_attachment::ColorAttachmentView,
+        command_buffer::CommandBuffer,
         device::Device,
         handle::TypeHandle,
         pipeline::{PipelineCache, RenderPipeline},
-        render_pass::{RenderPass, RenderPassDescriptor},
         texture_view::TextureView,
     },
 };
 
 use super::{GpuRead, GpuWrite, Resource, ResourceRef, ResourceTable, SwapChain};
 
-pub type DynRenderFn = dyn FnOnce(&mut RenderPass, &mut RenderContext) -> Result<(), RendererError>;
+pub type DynRenderFn = dyn FnOnce(&mut RenderContext) -> Result<(), RendererError>;
 
 ///资源上下文
 pub struct RenderContext<'a> {
@@ -24,22 +25,16 @@ pub struct RenderContext<'a> {
     resource_board: &'a ResourceBoard,
     pipeline_cache: &'a PipelineCache,
     pipelines: &'a CompiledPipelines,
+    cb: Option<CommandBuffer>,
 }
 
 impl<'a> RenderContext<'a> {
-    pub fn initialization_render_pass_descriptor(&self, desc: &mut RenderPassDescriptor) {
-        for color_attachment in desc.color_attachments.iter_mut() {
-            let view = match &color_attachment.view {
-                ColorAttachmentView::Initialization(_) => {
-                    continue;
-                }
-                ColorAttachmentView::Uninitialization(handle) => {
-                    self.get_texture_view_with_swap_chain(handle)
-                }
-            };
+    pub fn set_cb(&mut self, cb: CommandBuffer) {
+        self.cb = Some(cb);
+    }
 
-            color_attachment.view = ColorAttachmentView::Initialization(view);
-        }
+    pub fn take_cb(&mut self) -> Option<CommandBuffer> {
+        self.cb.take()
     }
 
     pub fn get_texture_view_with_swap_chain(&self, handle: &TypeHandle<Resource>) -> TextureView {
@@ -47,12 +42,19 @@ impl<'a> RenderContext<'a> {
         swap_chain.get_texture_view()
     }
 
-    pub fn get_render_pipeline(
-        &self,
-        handle: &TypeHandle<RenderPipeline>,
-    ) -> Option<&RenderPipeline> {
+    pub fn set_render_pipeline(&mut self, handle: &TypeHandle<RenderPipeline>) {
         let handle = self.pipelines.render_pipeline_ids[handle.index()];
-        self.pipeline_cache.get_render_pipeline(&handle)
+        if let Some(render_pipeline) = self.pipeline_cache.get_render_pipeline(&handle) {
+            if let Some(cb) = self.cb.as_mut() {
+                cb.set_render_pipeline(render_pipeline);
+            }
+        }
+    }
+
+    pub fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>) {
+        if let Some(cb) = self.cb.as_mut() {
+            cb.draw(vertices, instances);
+        }
     }
 
     pub fn device(&self) -> &Device {
@@ -72,6 +74,7 @@ impl<'a> RenderContext<'a> {
             resource_board,
             pipeline_cache,
             pipelines,
+            cb: None,
         }
     }
 

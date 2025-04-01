@@ -1,27 +1,12 @@
-use crate::frame_graph::Resource;
+use crate::frame_graph::{GpuRead, ResourceRef, SwapChain};
 
-use super::{handle::TypeHandle, texture_view::TextureView};
-
-pub enum ColorAttachmentView {
-    Uninitialization(TypeHandle<Resource>),
-    Initialization(TextureView),
+#[derive(Clone, Debug)]
+pub enum ColorAttachment {
+    SwapChain(ResourceRef<SwapChain, GpuRead>),
 }
 
-impl ColorAttachmentView {
-    pub fn new(handle: TypeHandle<Resource>) -> Self {
-        ColorAttachmentView::Uninitialization(handle)
+impl ColorAttachment {
+    pub fn swap_chain(handle: ResourceRef<SwapChain, GpuRead>) -> Self {
+        ColorAttachment::SwapChain(handle)
     }
-
-    pub fn get_texture_view(&self) -> &TextureView {
-        match self {
-            ColorAttachmentView::Uninitialization(_) => {
-                unimplemented!()
-            }
-            ColorAttachmentView::Initialization(view) => view,
-        }
-    }
-}
-
-pub struct ColorAttachment {
-    pub view: ColorAttachmentView,
 }

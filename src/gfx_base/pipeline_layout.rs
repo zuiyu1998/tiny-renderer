@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
-use downcast::Any;
+use downcast_rs::Downcast;
 use wgpu::PushConstantRange;
 
-use crate::define_atomic_id;
+use crate::{define_atomic_id, define_gfx_type};
 
 define_atomic_id!(PipelineLayoutId);
 
@@ -13,7 +13,7 @@ pub trait PipelineLayoutTrait: ErasedPipelineLayoutTrait + Clone {
     }
 }
 
-pub trait ErasedPipelineLayoutTrait: 'static + Any + Debug + Sync + Send {
+pub trait ErasedPipelineLayoutTrait: 'static + Downcast + Debug + Sync + Send {
     fn clone_value(&self) -> Box<dyn ErasedPipelineLayoutTrait>;
 }
 
@@ -26,15 +26,14 @@ where
     }
 }
 
-use downcast::downcast;
-
 use super::bind_group_layout::BindGroupLayout;
 
-#[derive(Debug)]
-pub struct PipelineLayout {
-    id: PipelineLayoutId,
-    instance: Box<dyn ErasedPipelineLayoutTrait>,
-}
+define_gfx_type!(
+    PipelineLayout,
+    PipelineLayoutId,
+    PipelineLayoutTrait,
+    ErasedPipelineLayoutTrait
+);
 
 pub struct PipelineLayoutDescriptor {
     pub bind_group_layouts: Vec<BindGroupLayout>,
@@ -45,38 +44,7 @@ impl Clone for PipelineLayout {
     fn clone(&self) -> Self {
         PipelineLayout {
             id: self.id,
-            instance: self.instance.clone_value(),
+            value: self.value.clone_value(),
         }
-    }
-}
-
-downcast!(dyn ErasedPipelineLayoutTrait);
-
-impl PartialEq for PipelineLayout {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-
-impl PipelineLayout {
-    pub fn new<T: PipelineLayoutTrait>(instance: T) -> Self {
-        PipelineLayout {
-            instance: Box::new(instance),
-            id: PipelineLayoutId::new(),
-        }
-    }
-
-    pub fn id(&self) -> PipelineLayoutId {
-        self.id
-    }
-
-    pub fn downcast<T: PipelineLayoutTrait>(self) -> Option<Box<T>> {
-        let value: Option<Box<T>> = self.instance.downcast::<T>().ok();
-        value
-    }
-
-    pub fn downcast_ref<T: PipelineLayoutTrait>(&self) -> Option<&T> {
-        let value: Option<&T> = self.instance.downcast_ref::<T>().ok();
-        value
     }
 }

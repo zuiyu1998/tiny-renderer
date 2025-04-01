@@ -6,7 +6,6 @@ use crate::{
         color_attachment::ColorAttachment,
         handle::TypeHandle,
         pipeline::{RenderPipeline, RenderPipelineDescriptor},
-        render_pass::RenderPass,
     },
 };
 
@@ -43,8 +42,7 @@ impl<'a> PassNodeBuilder<'a> {
 
     pub fn render(
         mut self,
-        render: impl (FnOnce(&mut RenderPass, &mut RenderContext) -> Result<(), RendererError>)
-        + 'static,
+        render: impl (FnOnce(&mut RenderContext) -> Result<(), RendererError>) + 'static,
     ) {
         let prev = self
             .pass_node

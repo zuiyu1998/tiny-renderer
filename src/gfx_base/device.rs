@@ -1,4 +1,7 @@
+use crate::{define_atomic_id, define_gfx_type};
 use std::fmt::Debug;
+
+use downcast_rs::Downcast;
 
 use crate::frame_graph::{AnyFGResource, AnyFGResourceDescriptor, SwapChain, SwapChainDescriptor};
 
@@ -9,6 +12,8 @@ use super::{
     render_pass::{RenderPass, RenderPassDescriptor},
     shader_module::{ShaderModule, ShaderModuleDescriptor},
 };
+
+define_atomic_id!(DeviceId);
 
 pub trait DeviceTrait: 'static + Sync + Send + Debug {
     fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain;
@@ -26,14 +31,55 @@ pub trait DeviceTrait: 'static + Sync + Send + Debug {
     fn submit(&self, command_buffers: Vec<CommandBuffer>);
 }
 
-#[derive(Debug)]
-pub struct Device(Box<dyn DeviceTrait>);
+pub trait ErasedDeviceTrait: 'static + Sync + Send + Debug + Downcast {
+    fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain;
 
-impl Device {
-    pub fn new<T: DeviceTrait>(device: T) -> Self {
-        Device(Box::new(device))
+    fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass;
+
+    fn create_render_pipeline(&self, desc: RenderPipelineDescriptorState) -> RenderPipeline;
+
+    fn create_command_buffer(&self) -> CommandBuffer;
+
+    fn create_shader_module(&self, desc: ShaderModuleDescriptor) -> ShaderModule;
+
+    fn create_pipeline_layout(&self, desc: PipelineLayoutDescriptor) -> PipelineLayout;
+
+    fn submit(&self, command_buffers: Vec<CommandBuffer>);
+}
+
+impl<T: DeviceTrait> ErasedDeviceTrait for T {
+    fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain {
+        <T as DeviceTrait>::create_swap_chain(&self, desc)
     }
 
+    fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass {
+        <T as DeviceTrait>::create_render_pass(&self, desc)
+    }
+
+    fn create_render_pipeline(&self, desc: RenderPipelineDescriptorState) -> RenderPipeline {
+        <T as DeviceTrait>::create_render_pipeline(&self, desc)
+    }
+
+    fn create_command_buffer(&self) -> CommandBuffer {
+        <T as DeviceTrait>::create_command_buffer(&self)
+    }
+
+    fn create_shader_module(&self, desc: ShaderModuleDescriptor) -> ShaderModule {
+        <T as DeviceTrait>::create_shader_module(&self, desc)
+    }
+
+    fn create_pipeline_layout(&self, desc: PipelineLayoutDescriptor) -> PipelineLayout {
+        <T as DeviceTrait>::create_pipeline_layout(&self, desc)
+    }
+
+    fn submit(&self, command_buffers: Vec<CommandBuffer>) {
+        <T as DeviceTrait>::submit(&self, command_buffers)
+    }
+}
+
+define_gfx_type!(Device, DeviceId, DeviceTrait, ErasedDeviceTrait);
+
+impl Device {
     pub fn create(&self, desc: AnyFGResourceDescriptor) -> AnyFGResource {
         match desc {
             AnyFGResourceDescriptor::SwapChain(desc) => {
@@ -46,30 +92,30 @@ impl Device {
     }
 
     pub fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain {
-        self.0.create_swap_chain(desc)
+        self.value.create_swap_chain(desc)
     }
 
     pub fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass {
-        self.0.create_render_pass(desc)
+        self.value.create_render_pass(desc)
     }
 
     pub fn submit(&self, command_buffers: Vec<CommandBuffer>) {
-        self.0.submit(command_buffers);
+        self.value.submit(command_buffers);
     }
 
     pub fn create_render_pipeline(&self, state: RenderPipelineDescriptorState) -> RenderPipeline {
-        self.0.create_render_pipeline(state)
+        self.value.create_render_pipeline(state)
     }
 
     pub fn create_command_buffer(&self) -> CommandBuffer {
-        self.0.create_command_buffer()
+        self.value.create_command_buffer()
     }
 
     pub fn create_shader_module(&self, desc: ShaderModuleDescriptor) -> ShaderModule {
-        self.0.create_shader_module(desc)
+        self.value.create_shader_module(desc)
     }
 
     pub fn create_pipeline_layout(&self, desc: PipelineLayoutDescriptor) -> PipelineLayout {
-        self.0.create_pipeline_layout(desc)
+        self.value.create_pipeline_layout(desc)
     }
 }
