@@ -11,3 +11,4 @@ pub mod render_pass;
 pub mod shader;
 pub mod shader_module;
 pub mod texture_view;
+pub mod buffer;

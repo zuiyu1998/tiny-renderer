@@ -1,5 +1,6 @@
 mod swap_chain;
 mod texture;
+mod buffer;
 
 use std::sync::Arc;
 
@@ -7,11 +8,12 @@ pub use swap_chain::*;
 pub use texture::*;
 
 use super::{AnyFGResourceDescriptor, FGResource, pass_node::PassNode};
-use crate::gfx_base::handle::TypeHandle;
+use crate::gfx_base::{buffer::Buffer, handle::TypeHandle};
 
 #[derive(Debug)]
 pub enum ImportedResource {
     Texture(Arc<Texture>),
+    Buffer(Arc<Buffer>),
 }
 
 pub struct Resource {

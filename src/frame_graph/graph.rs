@@ -6,6 +6,7 @@ use super::{
     TextureDescriptor, TransientResourceCache, pass_node_builder::PassNodeBuilder,
 };
 use crate::gfx_base::{
+    buffer::{Buffer, BufferDescriptor},
     device::Device,
     handle::TypeHandle,
     pipeline::{CachedRenderPipelineId, PipelineCache, RenderPipeline, RenderPipelineDescriptor},
@@ -23,13 +24,16 @@ where
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum AnyFGResourceDescriptor {
     Texture(TextureDescriptor),
+    Buffer(BufferDescriptor),
     SwapChain(SwapChainDescriptor),
 }
 
 #[derive(Debug)]
 pub enum AnyFGResource {
     OwnedTexture(Texture),
+    OwnedBuffer(Buffer),
     ImportedTexture(Arc<Texture>),
+    ImportedBuffer(Arc<Buffer>),
     OwnedSwapChain(SwapChain),
 }
 

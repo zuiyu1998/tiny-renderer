@@ -2290,6 +2290,7 @@ dependencies = [
 name = "tiny-renderer"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
  "downcast-rs 2.0.1",
  "futures-lite",
  "fyrox-core",

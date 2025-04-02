@@ -1,6 +1,6 @@
 use crate::{define_atomic_id, define_gfx_type};
 
-use super::{device::Device, pipeline::RenderPipeline, render_pass::RenderPass};
+use super::{buffer::Buffer, device::Device, pipeline::RenderPipeline, render_pass::RenderPass};
 use downcast_rs::Downcast;
 use std::{fmt::Debug, ops::Range};
 
@@ -14,6 +14,8 @@ pub trait CommandBufferTrait: 'static + Sync + Send + Debug {
     fn end_render_pass(&mut self);
 
     fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>);
+
+    fn set_vertex_buffer(&mut self, slot: u32, buffer: &Buffer);
 }
 
 pub trait ErasedCommandBufferTrait: 'static + Sync + Send + Debug + Downcast {
@@ -22,6 +24,8 @@ pub trait ErasedCommandBufferTrait: 'static + Sync + Send + Debug + Downcast {
     fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>);
 
     fn end_render_pass(&mut self);
+
+    fn set_vertex_buffer(&mut self, slot: u32, buffer: &Buffer);
 }
 
 impl<T: CommandBufferTrait> ErasedCommandBufferTrait for T {
@@ -37,6 +41,10 @@ impl<T: CommandBufferTrait> ErasedCommandBufferTrait for T {
 
     fn end_render_pass(&mut self) {
         <T as CommandBufferTrait>::end_render_pass(self);
+    }
+
+    fn set_vertex_buffer(&mut self, slot: u32, buffer: &Buffer) {
+        <T as CommandBufferTrait>::set_vertex_buffer(self, slot, buffer);
     }
 }
 
@@ -60,7 +68,11 @@ impl CommandBuffer {
         self.value.set_render_pipeline(render_pipeline);
     }
 
-    pub fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>)  {
+    pub fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>) {
         self.value.draw(vertices, instances);
+    }
+
+    pub fn set_vertex_buffer(&mut self, slot: u32, buffer: &Buffer) {
+        self.value.set_vertex_buffer(slot, buffer);
     }
 }

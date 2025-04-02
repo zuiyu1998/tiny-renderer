@@ -47,6 +47,9 @@ impl ResourceTable {
                 ImportedResource::Texture(resource) => {
                     AnyFGResource::ImportedTexture(resource.clone())
                 }
+                ImportedResource::Buffer(resource) => {
+                    AnyFGResource::ImportedBuffer(resource.clone())
+                }
             },
             ResourceState::Setup(desc) => {
                 let desc = desc.clone();

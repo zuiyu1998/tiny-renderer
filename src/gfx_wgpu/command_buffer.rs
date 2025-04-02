@@ -8,6 +8,8 @@ use crate::{
     gfx_wgpu::{WgpuDevice, WgpuRenderPipeline, WgpuTextView, render_pass::WgpuRenderPass},
 };
 
+use super::WgpuBuffer;
+
 #[derive(Debug, Default)]
 pub struct WgpuCommandBuffer {
     encoder: Option<wgpu::CommandEncoder>,
@@ -79,4 +81,14 @@ impl CommandBufferTrait for WgpuCommandBuffer {
             render_pass.draw(vertices, instances);
         }
     }
+    
+    fn set_vertex_buffer(&mut self, slot: u32, buffer: &crate::gfx_base::buffer::Buffer) {
+        let buffer = buffer.downcast_ref::<WgpuBuffer>().unwrap();
+
+        if let Some(render_pass) = self.render_pass.as_mut() {
+            render_pass.set_vertex_buffer(slot, buffer.buffer.slice(0..));
+        }
+    }
+
+
 }

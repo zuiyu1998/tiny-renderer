@@ -1,8 +1,11 @@
 use std::sync::Mutex;
 
+use wgpu::util::DeviceExt;
+
 use crate::{
     frame_graph::{SwapChain, SwapChainDescriptor},
     gfx_base::{
+        buffer::{Buffer, BufferDescriptor, BufferInitDescriptor},
         command_buffer::CommandBuffer,
         device::DeviceTrait,
         pipeline::{RenderPipeline, RenderPipelineDescriptorState},
@@ -10,7 +13,7 @@ use crate::{
         render_pass::{RenderPass, RenderPassDescriptor},
         shader_module::{ShaderModule, ShaderModuleDescriptor},
     },
-    gfx_wgpu::WgpuBindGroupLayout,
+    gfx_wgpu::{WgpuBindGroupLayout, WgpuBuffer},
 };
 
 use super::{
@@ -71,6 +74,8 @@ impl DeviceTrait for WgpuDevice {
                 targets.push(command_buffer);
             }
         }
+
+        // self.queue.write_buffer_with(buffer, offset, size);
 
         self.queue.submit(targets);
     }
@@ -157,15 +162,13 @@ impl DeviceTrait for WgpuDevice {
     }
 
     fn create_shader_module(&self, desc: ShaderModuleDescriptor) -> ShaderModule {
-        let label = desc.label.as_ref().map(|label| label.to_string());
-
         let source =
             wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(desc.source.source.as_str()));
 
         let shader_module = self
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: label.as_deref(),
+                label: desc.label.as_deref(),
                 source,
             });
 
@@ -194,5 +197,36 @@ impl DeviceTrait for WgpuDevice {
             });
 
         PipelineLayout::new(WgpuPipelineLayout::new(layout))
+    }
+
+    fn create_buffer(&self, desc: BufferDescriptor) -> Buffer {
+        let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: desc.label.as_deref(),
+            usage: desc.usage,
+            size: desc.size,
+            mapped_at_creation: desc.mapped_at_creation,
+        });
+
+        Buffer::new(WgpuBuffer { buffer }, desc)
+    }
+
+    fn create_buffer_init(&self, desc: BufferInitDescriptor) -> Buffer {
+        let buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: desc.label.as_deref(),
+                usage: desc.usage,
+                contents: desc.contents,
+            });
+
+        Buffer::new(
+            WgpuBuffer { buffer },
+            BufferDescriptor {
+                label: desc.label,
+                size: desc.contents.len() as u64,
+                usage: desc.usage,
+                mapped_at_creation: true,
+            },
+        )
     }
 }

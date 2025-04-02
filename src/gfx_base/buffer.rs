@@ -1,0 +1,36 @@
+use downcast_rs::Downcast;
+use wgpu::{BufferAddress, BufferUsages};
+
+use crate::{define_atomic_id, define_gfx_frame_graph_type};
+use std::{borrow::Cow, fmt::Debug};
+
+define_atomic_id!(BufferId);
+
+pub trait BufferTrait: 'static + Debug {}
+
+pub trait ErasedBufferTrait: 'static + Downcast + Debug {}
+
+impl<T: BufferTrait> ErasedBufferTrait for T {}
+
+define_gfx_frame_graph_type!(
+    Buffer,
+    BufferId,
+    BufferTrait,
+    ErasedBufferTrait,
+    BufferDescriptor
+);
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct BufferDescriptor {
+    pub label: Option<Cow<'static, str>>,
+    pub size: BufferAddress,
+    pub usage: BufferUsages,
+    pub mapped_at_creation: bool,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct BufferInitDescriptor<'a> {
+    pub label: Option<Cow<'static, str>>,
+    pub contents: &'a [u8],
+    pub usage: BufferUsages,
+}

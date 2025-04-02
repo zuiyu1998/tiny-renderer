@@ -6,6 +6,7 @@ use downcast_rs::Downcast;
 use crate::frame_graph::{AnyFGResource, AnyFGResourceDescriptor, SwapChain, SwapChainDescriptor};
 
 use super::{
+    buffer::{Buffer, BufferDescriptor, BufferInitDescriptor},
     command_buffer::CommandBuffer,
     pipeline::{RenderPipeline, RenderPipelineDescriptorState},
     pipeline_layout::{PipelineLayout, PipelineLayoutDescriptor},
@@ -28,7 +29,11 @@ pub trait DeviceTrait: 'static + Sync + Send + Debug {
 
     fn create_pipeline_layout(&self, desc: PipelineLayoutDescriptor) -> PipelineLayout;
 
+    fn create_buffer(&self, desc: BufferDescriptor) -> Buffer;
+
     fn submit(&self, command_buffers: Vec<CommandBuffer>);
+
+    fn create_buffer_init(&self, desc: BufferInitDescriptor) -> Buffer;
 }
 
 pub trait ErasedDeviceTrait: 'static + Sync + Send + Debug + Downcast {
@@ -45,9 +50,17 @@ pub trait ErasedDeviceTrait: 'static + Sync + Send + Debug + Downcast {
     fn create_pipeline_layout(&self, desc: PipelineLayoutDescriptor) -> PipelineLayout;
 
     fn submit(&self, command_buffers: Vec<CommandBuffer>);
+
+    fn create_buffer(&self, desc: BufferDescriptor) -> Buffer;
+
+    fn create_buffer_init(&self, desc: BufferInitDescriptor) -> Buffer;
 }
 
 impl<T: DeviceTrait> ErasedDeviceTrait for T {
+    fn create_buffer(&self, desc: BufferDescriptor) -> Buffer {
+        <T as DeviceTrait>::create_buffer(&self, desc)
+    }
+
     fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain {
         <T as DeviceTrait>::create_swap_chain(&self, desc)
     }
@@ -72,6 +85,10 @@ impl<T: DeviceTrait> ErasedDeviceTrait for T {
         <T as DeviceTrait>::create_pipeline_layout(&self, desc)
     }
 
+    fn create_buffer_init(&self, desc: BufferInitDescriptor) -> Buffer {
+        <T as DeviceTrait>::create_buffer_init(&self, desc)
+    }
+
     fn submit(&self, command_buffers: Vec<CommandBuffer>) {
         <T as DeviceTrait>::submit(&self, command_buffers)
     }
@@ -84,6 +101,9 @@ impl Device {
         match desc {
             AnyFGResourceDescriptor::SwapChain(desc) => {
                 AnyFGResource::OwnedSwapChain(self.create_swap_chain(desc))
+            }
+            AnyFGResourceDescriptor::Buffer(desc) => {
+                AnyFGResource::OwnedBuffer(self.create_buffer(desc))
             }
             _ => {
                 todo!()
@@ -117,5 +137,13 @@ impl Device {
 
     pub fn create_pipeline_layout(&self, desc: PipelineLayoutDescriptor) -> PipelineLayout {
         self.value.create_pipeline_layout(desc)
+    }
+
+    pub fn create_buffer(&self, desc: BufferDescriptor) -> Buffer {
+        self.value.create_buffer(desc)
+    }
+
+    pub fn create_buffer_init(&self, desc: BufferInitDescriptor) -> Buffer {
+        self.value.create_buffer_init(desc)
     }
 }

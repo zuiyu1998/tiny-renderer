@@ -13,6 +13,8 @@ naga_oil = { version = "0.17", default-features = false, features = [
     "test_shader",
 ] }
 
+bytemuck = { version = "1.19", features = [ "derive" ] }
+
 fyrox-resource = "0.36.2"
 fyrox-core = "0.36.2"
 

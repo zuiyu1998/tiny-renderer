@@ -5,6 +5,7 @@ pub mod pipeline_layout;
 pub mod render_pass;
 pub mod render_pipeline;
 pub mod shader_module;
+pub mod buffer;
 
 pub use bind_group_layout::*;
 pub use command_buffer::*;
@@ -12,6 +13,7 @@ pub use device::*;
 pub use pipeline_layout::*;
 pub use render_pipeline::*;
 pub use shader_module::*;
+pub use buffer::*;
 
 use std::sync::Mutex;
 use wgpu::SurfaceTexture;

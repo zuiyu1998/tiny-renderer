@@ -4,6 +4,7 @@ use crate::{
     error::{RendererError, Result},
     frame_graph::{CompiledPipelines, FGResource, ResourceBoard},
     gfx_base::{
+        buffer::Buffer,
         command_buffer::CommandBuffer,
         device::Device,
         handle::TypeHandle,
@@ -47,6 +48,14 @@ impl<'a> RenderContext<'a> {
         if let Some(render_pipeline) = self.pipeline_cache.get_render_pipeline(&handle) {
             if let Some(cb) = self.cb.as_mut() {
                 cb.set_render_pipeline(render_pipeline);
+            }
+        }
+    }
+
+    pub fn set_vertex_buffer(&mut self, slot: u32, handle: ResourceRef<Buffer, GpuRead>) {
+        if let Some(buffer) = self.resource_table.get_resource(&handle.resource_handle()) {
+            if let Some(cb) = self.cb.as_mut() {
+                cb.set_vertex_buffer(slot, buffer);
             }
         }
     }
@@ -99,10 +108,9 @@ impl<'a> RenderContext<'a> {
     }
 
     pub fn get_resource_mut<ResourceType: FGResource>(
-        &mut self,
+        &self,
         handle: &ResourceRef<ResourceType, GpuWrite>,
-    ) -> Option<&mut ResourceType> {
-        self.resource_table
-            .get_resource_mut(&handle.resource_handle())
+    ) -> Option<&ResourceType> {
+        self.resource_table.get_resource(&handle.resource_handle())
     }
 }
