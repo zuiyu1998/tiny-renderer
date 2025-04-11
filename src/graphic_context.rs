@@ -6,7 +6,7 @@ use wgpu::{BufferUsages, ColorTargetState, TextureFormat};
 
 use crate::{
     build_in::get_test,
-    frame_graph::SwapChainDescriptor,
+    frame_graph::SwapChainInfo,
     gfx_base::{
         buffer::{Buffer, BufferInitDescriptor},
         color_attachment::ColorAttachment,
@@ -141,7 +141,7 @@ impl InitializationGraphicContext {
 
             let pipeline_handle = builder.register_render_pipeline(&test_desc);
 
-            let new_swap_chain = builder.create("swap_chain", SwapChainDescriptor);
+            let new_swap_chain = builder.create("swap_chain", SwapChainInfo);
 
             let vertex_buffer_desc = vertex_buffer.get_desc().clone();
 

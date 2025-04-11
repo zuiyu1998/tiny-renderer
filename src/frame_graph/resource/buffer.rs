@@ -1,20 +1,19 @@
 use crate::{
     frame_graph::{
-        AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor,
-        ImportToFrameGraph,
+        AnyResource, AnyResourceDescriptor, ImportToFrameGraph, Resource, ResourceDescriptor,
     },
-    gfx_base::buffer::{Buffer, BufferDescriptor},
+    gfx_base::buffer::{Buffer, BufferInfo},
 };
 
 use super::ImportedVirtualResource;
 
-impl FGResourceDescriptor for BufferDescriptor {
+impl ResourceDescriptor for BufferInfo {
     type Resource = Buffer;
 }
 
-impl From<BufferDescriptor> for AnyFGResourceDescriptor {
-    fn from(value: BufferDescriptor) -> Self {
-        AnyFGResourceDescriptor::Buffer(value)
+impl From<BufferInfo> for AnyResourceDescriptor {
+    fn from(value: BufferInfo) -> Self {
+        AnyResourceDescriptor::Buffer(value)
     }
 }
 
@@ -24,24 +23,16 @@ impl ImportToFrameGraph for Buffer {
     }
 }
 
-impl FGResource for Buffer {
-    type Descriptor = BufferDescriptor;
+impl Resource for Buffer {
+    type Descriptor = BufferInfo;
 
-    fn borrow_resource(res: &AnyFGResource) -> &Self {
+    fn borrow_resource(res: &AnyResource) -> &Self {
         match &res {
-            AnyFGResource::OwnedBuffer(res) => res,
-            AnyFGResource::ImportedBuffer(res) => res,
+            AnyResource::OwnedBuffer(res) => res,
+            AnyResource::ImportedBuffer(res) => res,
             _ => {
                 unimplemented!()
             }
         }
-    }
-
-    fn get_desc(&self) -> &Self::Descriptor {
-        todo!()
-    }
-
-    fn borrow_resource_mut(_res: &mut AnyFGResource) -> &mut Self {
-        todo!()
     }
 }

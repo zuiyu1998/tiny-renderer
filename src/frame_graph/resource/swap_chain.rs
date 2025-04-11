@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use crate::{
-    frame_graph::{AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor},
+    frame_graph::{AnyResource, AnyResourceDescriptor, Resource, ResourceDescriptor},
     gfx_base::texture_view::TextureView,
 };
 
@@ -13,12 +13,12 @@ pub trait SwapChainTrait: 'static + Debug + Send + Sync {
 
 #[derive(Debug)]
 pub struct SwapChain {
-    desc: SwapChainDescriptor,
+    desc: SwapChainInfo,
     boxed: Box<dyn SwapChainTrait>,
 }
 
 impl SwapChain {
-    pub fn new<T: SwapChainTrait>(desc: SwapChainDescriptor, swap_chain: T) -> Self {
+    pub fn new<T: SwapChainTrait>(desc: SwapChainInfo, swap_chain: T) -> Self {
         SwapChain {
             desc,
             boxed: Box::new(swap_chain),
@@ -32,45 +32,34 @@ impl SwapChain {
     pub fn get_texture_view(&self) -> TextureView {
         self.boxed.get_texture_view()
     }
-}
 
-impl FGResource for SwapChain {
-    type Descriptor = SwapChainDescriptor;
-
-    fn borrow_resource(res: &AnyFGResource) -> &Self {
-        match res {
-            AnyFGResource::OwnedSwapChain(res) => res,
-            _ => {
-                unimplemented!()
-            }
-        }
-    }
-
-    fn borrow_resource_mut(res: &mut AnyFGResource) -> &mut Self {
-        match res {
-            AnyFGResource::OwnedSwapChain(_res) => {
-                unimplemented!()
-            }
-            _ => {
-                unimplemented!()
-            }
-        }
-    }
-
-    fn get_desc(&self) -> &Self::Descriptor {
+    pub fn get_desc(&self) -> &SwapChainInfo {
         &self.desc
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct SwapChainDescriptor;
+impl Resource for SwapChain {
+    type Descriptor = SwapChainInfo;
 
-impl From<SwapChainDescriptor> for AnyFGResourceDescriptor {
-    fn from(value: SwapChainDescriptor) -> Self {
-        AnyFGResourceDescriptor::SwapChain(value)
+    fn borrow_resource(res: &AnyResource) -> &Self {
+        match res {
+            AnyResource::OwnedSwapChain(res) => res,
+            _ => {
+                unimplemented!()
+            }
+        }
     }
 }
 
-impl FGResourceDescriptor for SwapChainDescriptor {
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct SwapChainInfo;
+
+impl From<SwapChainInfo> for AnyResourceDescriptor {
+    fn from(value: SwapChainInfo) -> Self {
+        AnyResourceDescriptor::SwapChain(value)
+    }
+}
+
+impl ResourceDescriptor for SwapChainInfo {
     type Resource = SwapChain;
 }

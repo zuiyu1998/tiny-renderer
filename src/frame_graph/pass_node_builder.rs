@@ -10,7 +10,7 @@ use crate::{
 };
 
 use super::{
-    FGResource, FGResourceDescriptor, FrameGraph, GpuRead, GpuWrite, ImportToFrameGraph, PassNode,
+    Resource, ResourceDescriptor, FrameGraph, GpuRead, GpuWrite, ImportToFrameGraph, PassNode,
     RenderContext, ResourceNodeHandle, ResourceNodeRef, TypeEquals,
 };
 
@@ -84,7 +84,7 @@ impl<'a> PassNodeBuilder<'a> {
         desc: DescriptorType,
     ) -> ResourceNodeHandle<DescriptorType::Resource>
     where
-    DescriptorType: FGResourceDescriptor + TypeEquals<Other = <<DescriptorType as FGResourceDescriptor>::Resource as FGResource>::Descriptor>,
+    DescriptorType: ResourceDescriptor + TypeEquals<Other = <<DescriptorType as ResourceDescriptor>::Resource as Resource>::Descriptor>,
     {
         self.graph.create(name, desc)
     }

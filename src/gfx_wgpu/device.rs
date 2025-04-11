@@ -3,9 +3,9 @@ use std::sync::Mutex;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    frame_graph::{SwapChain, SwapChainDescriptor},
+    frame_graph::{SwapChain, SwapChainInfo},
     gfx_base::{
-        buffer::{Buffer, BufferDescriptor, BufferInitDescriptor},
+        buffer::{Buffer, BufferInfo, BufferInitDescriptor},
         command_buffer::CommandBuffer,
         device::DeviceTrait,
         pipeline::{RenderPipeline, RenderPipelineDescriptorState},
@@ -46,7 +46,7 @@ impl WgpuDevice {
 }
 
 impl DeviceTrait for WgpuDevice {
-    fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain {
+    fn create_swap_chain(&self, desc: SwapChainInfo) -> SwapChain {
         let surface_texture = self
             .surface
             .get_current_texture()
@@ -197,7 +197,7 @@ impl DeviceTrait for WgpuDevice {
         PipelineLayout::new(WgpuPipelineLayout::new(layout))
     }
 
-    fn create_buffer(&self, desc: BufferDescriptor) -> Buffer {
+    fn create_buffer(&self, desc: BufferInfo) -> Buffer {
         let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: desc.label.as_deref(),
             usage: desc.usage,
@@ -219,7 +219,7 @@ impl DeviceTrait for WgpuDevice {
 
         Buffer::new(
             WgpuBuffer { buffer },
-            BufferDescriptor {
+            BufferInfo {
                 label: desc.label,
                 size: desc.contents.len() as u64,
                 usage: desc.usage,

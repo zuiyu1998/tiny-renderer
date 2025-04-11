@@ -1,68 +1,15 @@
 use std::sync::Arc;
 
 use super::{
-    DevicePass, ImportedVirtualResource, PassNode, RenderContext, VirtualResource, ResourceBoard, ResourceInfo,
-    ResourceNode, ResourceNodeHandle, ResourceTable, SwapChain, SwapChainDescriptor, Texture,
-    TextureDescriptor, TransientResourceCache, pass_node_builder::PassNodeBuilder,
+    pass_node_builder::PassNodeBuilder, DevicePass, ImportToFrameGraph, ImportedVirtualResource, PassNode, RenderContext, Resource, ResourceBoard, ResourceDescriptor, ResourceInfo, ResourceNode, ResourceNodeHandle, ResourceTable, TransientResourceCache, TypeEquals, VirtualResource
 };
 use crate::gfx_base::{
-    buffer::{Buffer, BufferDescriptor},
     device::Device,
     handle::TypeHandle,
     pipeline::{CachedRenderPipelineId, PipelineCache, RenderPipeline, RenderPipelineDescriptor},
 };
 
-use std::{fmt::Debug, hash::Hash};
-
-pub trait ImportToFrameGraph
-where
-    Self: Sized + FGResource,
-{
-    fn import(self: Arc<Self>) -> ImportedVirtualResource;
-}
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum AnyFGResourceDescriptor {
-    Texture(TextureDescriptor),
-    Buffer(BufferDescriptor),
-    SwapChain(SwapChainDescriptor),
-}
-
-pub enum AnyFGResource {
-    OwnedTexture(Texture),
-    OwnedBuffer(Buffer),
-    ImportedTexture(Arc<Texture>),
-    ImportedBuffer(Arc<Buffer>),
-    OwnedSwapChain(SwapChain),
-}
-
-pub trait FGResource: 'static {
-    type Descriptor: FGResourceDescriptor;
-
-    fn borrow_resource(res: &AnyFGResource) -> &Self;
-
-    fn borrow_resource_mut(res: &mut AnyFGResource) -> &mut Self;
-
-    fn get_desc(&self) -> &Self::Descriptor;
-}
-
-pub trait FGResourceDescriptor:
-    'static + Clone + Hash + Eq + Debug + Into<AnyFGResourceDescriptor>
-{
-    type Resource: FGResource;
-}
-
-pub trait TypeEquals {
-    type Other;
-    fn same(value: Self) -> Self::Other;
-}
-
-impl<T: Sized> TypeEquals for T {
-    type Other = Self;
-    fn same(value: Self) -> Self::Other {
-        value
-    }
-}
+use std::fmt::Debug;
 
 pub struct ExecutingFrameGraph {
     resource_table: ResourceTable,
@@ -300,7 +247,10 @@ impl FrameGraph {
         &self.resources[handle.index()]
     }
 
-    pub fn get_resource_mut(&mut self, handle: &TypeHandle<VirtualResource>) -> &mut VirtualResource {
+    pub fn get_resource_mut(
+        &mut self,
+        handle: &TypeHandle<VirtualResource>,
+    ) -> &mut VirtualResource {
         &mut self.resources[handle.index()]
     }
 
@@ -343,11 +293,15 @@ impl FrameGraph {
         desc: ResourceType::Descriptor,
     ) -> ResourceNodeHandle<ResourceType>
     where
-        ResourceType: FGResource,
+        ResourceType: Resource,
     {
         let resource_handle = TypeHandle::new(self.resources.len());
-        let resource: VirtualResource =
-            VirtualResource::new_imported::<ResourceType>(name, resource_handle, desc, imported_resource);
+        let resource: VirtualResource = VirtualResource::new_imported::<ResourceType>(
+            name,
+            resource_handle,
+            desc,
+            imported_resource,
+        );
 
         let resource_info = resource.info.clone();
         self.resources.push(resource);
@@ -363,7 +317,7 @@ impl FrameGraph {
 
     pub fn create<DescriptorType>(&mut self, name: &str, desc: DescriptorType) -> ResourceNodeHandle<DescriptorType::Resource>
     where
-        DescriptorType: FGResourceDescriptor + TypeEquals<Other = <<DescriptorType as FGResourceDescriptor>::Resource as FGResource>::Descriptor>,
+        DescriptorType: ResourceDescriptor + TypeEquals<Other = <<DescriptorType as ResourceDescriptor>::Resource as Resource>::Descriptor>,
     {
         let resource_handle = TypeHandle::new(self.resources.len());
 

@@ -17,11 +17,11 @@ define_gfx_frame_graph_type!(
     BufferId,
     BufferTrait,
     ErasedBufferTrait,
-    BufferDescriptor
+    BufferInfo
 );
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct BufferDescriptor {
+pub struct BufferInfo {
     pub label: Option<Cow<'static, str>>,
     pub size: BufferAddress,
     pub usage: BufferUsages,

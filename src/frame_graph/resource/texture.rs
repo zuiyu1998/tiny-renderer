@@ -3,9 +3,7 @@ use downcast_rs::Downcast;
 use crate::{define_atomic_id, define_gfx_type};
 use std::fmt::Debug;
 
-use crate::frame_graph::{
-    AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor,
-};
+use crate::frame_graph::{AnyResource, AnyResourceDescriptor, Resource, ResourceDescriptor};
 
 define_atomic_id!(TextureId);
 
@@ -20,33 +18,25 @@ define_gfx_type!(Texture, TextureId, TextureTrait, ErasedTextureTrait);
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct TextureDescriptor {}
 
-impl FGResourceDescriptor for TextureDescriptor {
+impl ResourceDescriptor for TextureDescriptor {
     type Resource = Texture;
 }
 
-impl From<TextureDescriptor> for AnyFGResourceDescriptor {
+impl From<TextureDescriptor> for AnyResourceDescriptor {
     fn from(value: TextureDescriptor) -> Self {
-        AnyFGResourceDescriptor::Texture(value)
+        AnyResourceDescriptor::Texture(value)
     }
 }
 
-impl FGResource for Texture {
+impl Resource for Texture {
     type Descriptor = TextureDescriptor;
 
-    fn borrow_resource(res: &AnyFGResource) -> &Self {
+    fn borrow_resource(res: &AnyResource) -> &Self {
         match &res {
-            AnyFGResource::OwnedTexture(res) => res,
+            AnyResource::OwnedTexture(res) => res,
             _ => {
                 unimplemented!()
             }
         }
-    }
-
-    fn get_desc(&self) -> &Self::Descriptor {
-        todo!()
-    }
-
-    fn borrow_resource_mut(_res: &mut AnyFGResource) -> &mut Self {
-        todo!()
     }
 }

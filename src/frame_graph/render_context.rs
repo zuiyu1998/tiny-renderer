@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use crate::{
     error::{RendererError, Result},
-    frame_graph::{CompiledPipelines, FGResource, ResourceBoard},
+    frame_graph::{CompiledPipelines, Resource, ResourceBoard},
     gfx_base::{
         buffer::Buffer,
         command_buffer::CommandBuffer,
@@ -81,7 +81,7 @@ impl<'a> RenderContext<'a> {
         }
     }
 
-    pub fn get_resource_from_board<ResourceType: FGResource>(
+    pub fn get_resource_from_board<ResourceType: Resource>(
         &self,
         name: &str,
     ) -> Option<&ResourceType> {
@@ -94,14 +94,14 @@ impl<'a> RenderContext<'a> {
         }
     }
 
-    pub fn get_resource<ResourceType: FGResource>(
+    pub fn get_resource<ResourceType: Resource>(
         &self,
         handle: &ResourceNodeRef<ResourceType, GpuRead>,
     ) -> Option<&ResourceType> {
         self.resource_table.get_resource(&handle.resource_handle())
     }
 
-    pub fn get_resource_mut<ResourceType: FGResource>(
+    pub fn get_resource_mut<ResourceType: Resource>(
         &self,
         handle: &ResourceNodeRef<ResourceType, GpuWrite>,
     ) -> Option<&ResourceType> {

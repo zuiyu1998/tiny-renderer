@@ -1,12 +1,12 @@
-use crate::{define_atomic_id, define_gfx_type};
+use crate::{define_atomic_id, define_gfx_type, frame_graph::SwapChainInfo};
 use std::fmt::Debug;
 
 use downcast_rs::Downcast;
 
-use crate::frame_graph::{AnyFGResource, AnyFGResourceDescriptor, SwapChain, SwapChainDescriptor};
+use crate::frame_graph::{AnyResource, AnyResourceDescriptor, SwapChain};
 
 use super::{
-    buffer::{Buffer, BufferDescriptor, BufferInitDescriptor},
+    buffer::{Buffer, BufferInfo, BufferInitDescriptor},
     command_buffer::CommandBuffer,
     pipeline::{RenderPipeline, RenderPipelineDescriptorState},
     pipeline_layout::{PipelineLayout, PipelineLayoutDescriptor},
@@ -17,7 +17,7 @@ use super::{
 define_atomic_id!(DeviceId);
 
 pub trait DeviceTrait: 'static + Sync + Send + Debug {
-    fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain;
+    fn create_swap_chain(&self, desc: SwapChainInfo) -> SwapChain;
 
     fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass;
 
@@ -29,7 +29,7 @@ pub trait DeviceTrait: 'static + Sync + Send + Debug {
 
     fn create_pipeline_layout(&self, desc: PipelineLayoutDescriptor) -> PipelineLayout;
 
-    fn create_buffer(&self, desc: BufferDescriptor) -> Buffer;
+    fn create_buffer(&self, desc: BufferInfo) -> Buffer;
 
     fn submit(&self, command_buffers: Vec<CommandBuffer>);
 
@@ -37,7 +37,7 @@ pub trait DeviceTrait: 'static + Sync + Send + Debug {
 }
 
 pub trait ErasedDeviceTrait: 'static + Sync + Send + Debug + Downcast {
-    fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain;
+    fn create_swap_chain(&self, desc: SwapChainInfo) -> SwapChain;
 
     fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass;
 
@@ -51,17 +51,17 @@ pub trait ErasedDeviceTrait: 'static + Sync + Send + Debug + Downcast {
 
     fn submit(&self, command_buffers: Vec<CommandBuffer>);
 
-    fn create_buffer(&self, desc: BufferDescriptor) -> Buffer;
+    fn create_buffer(&self, desc: BufferInfo) -> Buffer;
 
     fn create_buffer_init(&self, desc: BufferInitDescriptor) -> Buffer;
 }
 
 impl<T: DeviceTrait> ErasedDeviceTrait for T {
-    fn create_buffer(&self, desc: BufferDescriptor) -> Buffer {
+    fn create_buffer(&self, desc: BufferInfo) -> Buffer {
         <T as DeviceTrait>::create_buffer(&self, desc)
     }
 
-    fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain {
+    fn create_swap_chain(&self, desc: SwapChainInfo) -> SwapChain {
         <T as DeviceTrait>::create_swap_chain(&self, desc)
     }
 
@@ -97,13 +97,10 @@ impl<T: DeviceTrait> ErasedDeviceTrait for T {
 define_gfx_type!(Device, DeviceId, DeviceTrait, ErasedDeviceTrait);
 
 impl Device {
-    pub fn create(&self, desc: AnyFGResourceDescriptor) -> AnyFGResource {
+    pub fn create(&self, desc: AnyResourceDescriptor) -> AnyResource {
         match desc {
-            AnyFGResourceDescriptor::SwapChain(desc) => {
-                AnyFGResource::OwnedSwapChain(self.create_swap_chain(desc))
-            }
-            AnyFGResourceDescriptor::Buffer(desc) => {
-                AnyFGResource::OwnedBuffer(self.create_buffer(desc))
+            AnyResourceDescriptor::Buffer(desc) => {
+                AnyResource::OwnedBuffer(self.create_buffer(desc))
             }
             _ => {
                 todo!()
@@ -111,7 +108,7 @@ impl Device {
         }
     }
 
-    pub fn create_swap_chain(&self, desc: SwapChainDescriptor) -> SwapChain {
+    pub fn create_swap_chain(&self, desc: SwapChainInfo) -> SwapChain {
         self.value.create_swap_chain(desc)
     }
 
@@ -139,7 +136,7 @@ impl Device {
         self.value.create_pipeline_layout(desc)
     }
 
-    pub fn create_buffer(&self, desc: BufferDescriptor) -> Buffer {
+    pub fn create_buffer(&self, desc: BufferInfo) -> Buffer {
         self.value.create_buffer(desc)
     }
 

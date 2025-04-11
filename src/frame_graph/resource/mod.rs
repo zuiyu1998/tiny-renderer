@@ -1,16 +1,63 @@
+mod buffer;
 mod swap_chain;
 mod texture;
-mod buffer;
-
-use std::sync::Arc;
 
 pub use swap_chain::*;
 pub use texture::*;
 
-use super::{AnyFGResourceDescriptor, FGResource, pass_node::PassNode};
-use crate::gfx_base::{buffer::Buffer, handle::TypeHandle};
+use std::{fmt::Debug, hash::Hash, sync::Arc};
 
-pub enum ImportedVirtualResource{
+use crate::gfx_base::{buffer::{Buffer, BufferInfo}, handle::TypeHandle};
+
+use super::PassNode;
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum AnyResourceDescriptor {
+    Texture(TextureDescriptor),
+    Buffer(BufferInfo),
+    SwapChain(SwapChainInfo),
+}
+
+pub enum AnyResource {
+    OwnedTexture(Texture),
+    OwnedBuffer(Buffer),
+    ImportedTexture(Arc<Texture>),
+    ImportedBuffer(Arc<Buffer>),
+    OwnedSwapChain(SwapChain),
+}
+
+pub trait Resource: 'static {
+    type Descriptor: ResourceDescriptor;
+
+    fn borrow_resource(res: &AnyResource) -> &Self;
+}
+
+pub trait ResourceDescriptor:
+    'static + Clone + Hash + Eq + Debug + Into<AnyResourceDescriptor>
+{
+    type Resource: Resource;
+}
+
+pub trait TypeEquals {
+    type Other;
+    fn same(value: Self) -> Self::Other;
+}
+
+impl<T: Sized> TypeEquals for T {
+    type Other = Self;
+    fn same(value: Self) -> Self::Other {
+        value
+    }
+}
+
+pub trait ImportToFrameGraph
+where
+    Self: Sized + Resource,
+{
+    fn import(self: Arc<Self>) -> ImportedVirtualResource;
+}
+
+pub enum ImportedVirtualResource {
     Texture(Arc<Texture>),
     Buffer(Arc<Buffer>),
 }
@@ -21,7 +68,7 @@ pub struct VirtualResource {
 }
 
 impl VirtualResource {
-    pub fn new_setuped<ResourceType: FGResource>(
+    pub fn new_setuped<ResourceType: Resource>(
         name: &str,
         handle: TypeHandle<VirtualResource>,
         desc: ResourceType::Descriptor,
@@ -34,7 +81,7 @@ impl VirtualResource {
         }
     }
 
-    pub fn new_imported<ResourceType: FGResource>(
+    pub fn new_imported<ResourceType: Resource>(
         name: &str,
         handle: TypeHandle<VirtualResource>,
         desc: ResourceType::Descriptor,
@@ -98,11 +145,11 @@ impl ResourceInfo {
 }
 
 pub struct ImportedResourceState {
-    pub desc: AnyFGResourceDescriptor,
+    pub desc: AnyResourceDescriptor,
     pub resource: ImportedVirtualResource,
 }
 
 pub enum ResourceState {
-    Setup(AnyFGResourceDescriptor),
+    Setup(AnyResourceDescriptor),
     Imported(ImportedResourceState),
 }
