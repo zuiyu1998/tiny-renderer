@@ -1,9 +1,6 @@
-use std::sync::Mutex;
-
 use wgpu::util::DeviceExt;
 
 use crate::{
-    frame_graph::{SwapChain, SwapChainInfo},
     gfx_base::{
         buffer::{Buffer, BufferInfo, BufferInitInfo},
         command_buffer::CommandBuffer,
@@ -17,49 +14,24 @@ use crate::{
 };
 
 use super::{
-    WgpuCommandBuffer, WgpuPipelineLayout, WgpuRenderPipeline, WgpuShaderModule, WgpuSwapChain,
+    WgpuCommandBuffer, WgpuPipelineLayout, WgpuRenderPipeline, WgpuShaderModule,
     render_pass::WgpuRenderPass,
 };
 
 #[derive(Debug)]
 pub struct WgpuDevice {
     pub device: wgpu::Device,
-    surface: wgpu::Surface<'static>,
-    surface_format: wgpu::TextureFormat,
+
     queue: wgpu::Queue,
 }
 
 impl WgpuDevice {
-    pub fn new(
-        device: wgpu::Device,
-        surface: wgpu::Surface<'static>,
-        surface_format: wgpu::TextureFormat,
-        queue: wgpu::Queue,
-    ) -> Self {
-        WgpuDevice {
-            device,
-            surface,
-            surface_format,
-            queue,
-        }
+    pub fn new(device: wgpu::Device, queue: wgpu::Queue) -> Self {
+        WgpuDevice { device, queue }
     }
 }
 
 impl DeviceTrait for WgpuDevice {
-    fn create_swap_chain(&self, desc: SwapChainInfo) -> SwapChain {
-        let surface_texture = self
-            .surface
-            .get_current_texture()
-            .expect("failed to acquire next swapchain texture");
-
-        let swap_chain = WgpuSwapChain {
-            surface_texture: Mutex::new(Some(surface_texture)),
-            surface_format: self.surface_format,
-        };
-
-        SwapChain::new(desc, swap_chain)
-    }
-
     fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass {
         RenderPass::new(WgpuRenderPass::new(desc))
     }

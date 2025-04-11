@@ -4,7 +4,7 @@ use fyrox_resource::event::ResourceEvent;
 
 use crate::{
     gfx_base::{device::Device, pipeline::PipelineCache, shader::Shader},
-    world_renderer::WorldRenderer,
+    world_renderer::{RenderCamera, WorldRenderer},
 };
 
 pub struct InitializationGraphicContext {
@@ -72,11 +72,11 @@ impl InitializationGraphicContext {
         self.pipeline_cache.update(dt);
     }
 
-    fn render(&mut self, dt: f32) {
+    fn render(&mut self, dt: f32, cameras: &[RenderCamera]) {
         self.update_pipeline_cache(dt);
 
         self.world_renderer
-            .render(&mut self.pipeline_cache, &self.vertex_buffers);
+            .render(&mut self.pipeline_cache, cameras, &self.vertex_buffers);
     }
 }
 
@@ -108,9 +108,9 @@ impl GraphicContext {
         )));
     }
 
-    pub fn render(&mut self, dt: f32) {
+    pub fn render(&mut self, dt: f32, cameras: &[RenderCamera]) {
         if let GraphicContext::Initialization(context) = self {
-            context.render(dt)
+            context.render(dt, cameras)
         }
     }
 }

@@ -6,7 +6,6 @@ pub mod pipeline_layout;
 pub mod render_pass;
 pub mod render_pipeline;
 pub mod shader_module;
-pub mod swap_chain;
 
 pub use bind_group_layout::*;
 pub use buffer::*;
@@ -15,11 +14,10 @@ pub use device::*;
 pub use pipeline_layout::*;
 pub use render_pipeline::*;
 pub use shader_module::*;
-pub use swap_chain::*;
 
 use crate::gfx_base::texture_view::TextureViewTrait;
 
-#[derive(Debug)]
-pub struct WgpuTextureView(wgpu::TextureView);
+#[derive(Debug, Clone)]
+pub struct WgpuTextureView(pub wgpu::TextureView);
 
 impl TextureViewTrait for WgpuTextureView {}

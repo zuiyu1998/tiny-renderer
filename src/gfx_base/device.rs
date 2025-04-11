@@ -1,9 +1,9 @@
-use crate::{define_atomic_id, define_gfx_type, frame_graph::SwapChainInfo};
+use crate::{define_atomic_id, define_gfx_type};
 use std::fmt::Debug;
 
 use downcast_rs::Downcast;
 
-use crate::frame_graph::{AnyResource, AnyResourceDescriptor, SwapChain};
+use crate::frame_graph::{AnyResource, AnyResourceDescriptor};
 
 use super::{
     buffer::{Buffer, BufferInfo, BufferInitInfo},
@@ -17,8 +17,6 @@ use super::{
 define_atomic_id!(DeviceId);
 
 pub trait DeviceTrait: 'static + Sync + Send + Debug {
-    fn create_swap_chain(&self, desc: SwapChainInfo) -> SwapChain;
-
     fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass;
 
     fn create_render_pipeline(&self, desc: RenderPipelineDescriptorState) -> RenderPipeline;
@@ -37,8 +35,6 @@ pub trait DeviceTrait: 'static + Sync + Send + Debug {
 }
 
 pub trait ErasedDeviceTrait: 'static + Sync + Send + Debug + Downcast {
-    fn create_swap_chain(&self, desc: SwapChainInfo) -> SwapChain;
-
     fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass;
 
     fn create_render_pipeline(&self, desc: RenderPipelineDescriptorState) -> RenderPipeline;
@@ -59,10 +55,6 @@ pub trait ErasedDeviceTrait: 'static + Sync + Send + Debug + Downcast {
 impl<T: DeviceTrait> ErasedDeviceTrait for T {
     fn create_buffer(&self, desc: BufferInfo) -> Buffer {
         <T as DeviceTrait>::create_buffer(&self, desc)
-    }
-
-    fn create_swap_chain(&self, desc: SwapChainInfo) -> SwapChain {
-        <T as DeviceTrait>::create_swap_chain(&self, desc)
     }
 
     fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass {
@@ -102,17 +94,10 @@ impl Device {
             AnyResourceDescriptor::Buffer(desc) => {
                 AnyResource::OwnedBuffer(self.create_buffer(desc))
             }
-            AnyResourceDescriptor::SwapChain(desc) => {
-                AnyResource::OwnedSwapChain(self.create_swap_chain(desc))
-            }
             _ => {
-                todo!()
+                unimplemented!()
             }
         }
-    }
-
-    pub fn create_swap_chain(&self, desc: SwapChainInfo) -> SwapChain {
-        self.value.create_swap_chain(desc)
     }
 
     pub fn create_render_pass(&self, desc: RenderPassDescriptor) -> RenderPass {

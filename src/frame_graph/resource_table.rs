@@ -38,6 +38,9 @@ impl ResourceTable {
                 ImportedVirtualResource::Buffer(resource) => {
                     AnyResource::ImportedBuffer(resource.clone())
                 }
+                ImportedVirtualResource::TextureView(resource) => {
+                    AnyResource::ImportedTextureView(resource.clone())
+                }
             },
             ResourceState::Setup(desc) => {
                 let desc = desc.clone();
@@ -57,9 +60,6 @@ impl ResourceTable {
     ) {
         if let Some(resource) = self.resources.remove(handle) {
             match resource {
-                AnyResource::OwnedSwapChain(swap_chain) => {
-                    swap_chain.present();
-                }
                 _ => {}
             }
         }

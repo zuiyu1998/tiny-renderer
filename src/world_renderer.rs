@@ -3,19 +3,43 @@ use std::sync::Arc;
 use wgpu::BufferUsages;
 
 use crate::gfx_base::buffer::BufferInitInfo;
-use crate::gfx_base::color_attachment::ColorAttachmentInfo;
 use crate::gfx_base::device::Device;
 
-use crate::frame_graph::{FrameGraph, RenderContext, SwapChainInfo, TransientResourceCache};
+use crate::frame_graph::{FrameGraph, RenderContext, TransientResourceCache};
 use crate::gfx_base::pipeline::PipelineCache;
+use crate::gfx_base::texture_view::TextureView;
+use crate::gfx_base::ColorAttachmentInfo;
 use crate::graphic_context::Vertex;
+
+pub enum RenderTarget {
+    Window(Arc<TextureView>),
+}
+
+pub struct RenderCamera {
+    pub render_target: RenderTarget,
+}
+
+impl RenderCamera {
+    pub fn get_texture_view(&self) -> Arc<TextureView> {
+        match &self.render_target {
+            RenderTarget::Window(texture_view) => {
+                texture_view.clone()
+            }
+        }
+    }
+}
 
 pub struct WorldRenderer {
     device: Arc<Device>,
     transient_resource_cache: TransientResourceCache,
 }
 
-fn prepare(device: &Device, vertex_buffers: &Vec<Vertex>, frame_graph: &mut FrameGraph) {
+fn prepare(
+    device: &Device,
+    camera: &RenderCamera,
+    frame_graph: &mut FrameGraph,
+    vertex_buffers: &Vec<Vertex>,
+) {
     let buffer = device.create_buffer_init(BufferInitInfo {
         label: Some("vertex_buffer".into()),
         usage: BufferUsages::VERTEX,
@@ -27,7 +51,7 @@ fn prepare(device: &Device, vertex_buffers: &Vec<Vertex>, frame_graph: &mut Fram
 
     let mut builder = frame_graph.create_pass_node_builder(1, "vertex");
 
-    let swap_chain_handle = builder.create("swap_chain", SwapChainInfo);
+    let swap_chain_handle = builder.import("swap_chain", camera.get_texture_view());
 
     let swap_chain_read = builder.read(swap_chain_handle);
 
@@ -44,19 +68,26 @@ impl WorldRenderer {
         }
     }
 
-    pub fn render(&mut self, pipeline_cache: &mut PipelineCache, vertex: &Vec<Vertex>) {
-        let mut frame_graph = FrameGraph::default();
+    pub fn render(
+        &mut self,
+        pipeline_cache: &mut PipelineCache,
+        cameras: &[RenderCamera],
+        vertex: &Vec<Vertex>,
+    ) {
+        for camera in cameras.iter() {
+            let mut frame_graph = FrameGraph::default();
 
-        prepare(&self.device, vertex, &mut frame_graph);
+            prepare(&self.device, camera, &mut frame_graph, vertex);
 
-        frame_graph.compile();
+            frame_graph.compile();
 
-        let mut render_context = RenderContext::new(
-            &self.device,
-            pipeline_cache,
-            &mut self.transient_resource_cache,
-        );
+            let mut render_context = RenderContext::new(
+                &self.device,
+                pipeline_cache,
+                &mut self.transient_resource_cache,
+            );
 
-        frame_graph.execute(&mut render_context);
+            frame_graph.execute(&mut render_context);
+        }
     }
 }

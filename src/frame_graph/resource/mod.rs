@@ -1,21 +1,23 @@
 mod buffer;
-mod swap_chain;
 mod texture;
+mod texture_view;
 
-pub use swap_chain::*;
-pub use texture::*;
+use std::{hash::Hash, sync::Arc};
 
-use std::{fmt::Debug, hash::Hash, sync::Arc};
-
-use crate::gfx_base::{buffer::{Buffer, BufferInfo}, handle::TypeHandle};
+use crate::gfx_base::{
+    buffer::{Buffer, BufferInfo},
+    handle::TypeHandle,
+    texture_view::{TextureView, TextureViewInfo},
+    Texture, TextureInfo
+};
 
 use super::PassNode;
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub enum AnyResourceDescriptor {
-    Texture(TextureDescriptor),
+    Texture(TextureInfo),
     Buffer(BufferInfo),
-    SwapChain(SwapChainInfo),
+    TextureView(TextureViewInfo),
 }
 
 pub enum AnyResource {
@@ -23,18 +25,18 @@ pub enum AnyResource {
     OwnedBuffer(Buffer),
     ImportedTexture(Arc<Texture>),
     ImportedBuffer(Arc<Buffer>),
-    OwnedSwapChain(SwapChain),
+    ImportedTextureView(Arc<TextureView>),
 }
 
 pub trait Resource: 'static {
     type Descriptor: ResourceDescriptor;
 
     fn borrow_resource(res: &AnyResource) -> &Self;
+
+    fn get_desc(&self) -> &Self::Descriptor;
 }
 
-pub trait ResourceDescriptor:
-    'static + Clone + Hash + Eq + Debug + Into<AnyResourceDescriptor>
-{
+pub trait ResourceDescriptor: 'static + Clone + Hash + Eq + Into<AnyResourceDescriptor> {
     type Resource: Resource;
 }
 
@@ -61,6 +63,7 @@ where
 pub enum ImportedVirtualResource {
     Texture(Arc<Texture>),
     Buffer(Arc<Buffer>),
+    TextureView(Arc<TextureView>),
 }
 
 #[derive(Clone)]

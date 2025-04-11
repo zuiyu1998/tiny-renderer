@@ -59,11 +59,11 @@ impl<'a> PassNodeBuilder<'a> {
         &mut self,
         name: &str,
         resource: Arc<ResourceType>,
-        desc: ResourceType::Descriptor,
     ) -> ResourceNodeHandle<ResourceType>
     where
         ResourceType: ImportToFrameGraph,
     {
+        let desc = resource.get_desc().clone();
         self.graph.import(name, resource, desc)
     }
 
