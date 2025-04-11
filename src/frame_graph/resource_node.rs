@@ -1,8 +1,8 @@
-use std::{fmt::Debug, marker::PhantomData};
+use std::marker::PhantomData;
 
 use crate::gfx_base::handle::TypeHandle;
 
-use super::{PassNode, Resource};
+use super::{PassNode, VirtualResource};
 
 ///用于控制资源是否可写
 pub struct ResourceNodeRef<ResourceType, ViewType> {
@@ -24,7 +24,7 @@ impl<ResourceType, ViewType> ResourceNodeRef<ResourceType, ViewType> {
         self.handle.resource_node_handle
     }
 
-    pub fn resource_handle(&self) -> TypeHandle<Resource> {
+    pub fn resource_handle(&self) -> TypeHandle<VirtualResource> {
         self.handle.resource_handle
     }
 
@@ -55,7 +55,7 @@ impl GpuViewType for GpuWrite {
 #[derive(Clone)]
 pub struct RawResourceNodeHandle {
     resource_node_handle: TypeHandle<ResourceNode>,
-    resource_handle: TypeHandle<Resource>,
+    resource_handle: TypeHandle<VirtualResource>,
 }
 
 impl<ResourceType> From<RawResourceNodeHandle> for ResourceNodeHandle<ResourceType> {
@@ -73,24 +73,15 @@ impl RawResourceNodeHandle {
         self.resource_node_handle
     }
 
-    pub fn resource_handle(&self) -> TypeHandle<Resource> {
+    pub fn resource_handle(&self) -> TypeHandle<VirtualResource> {
         self.resource_handle
     }
 }
 
 pub struct ResourceNodeHandle<ResourceType> {
     resource_node_handle: TypeHandle<ResourceNode>,
-    resource_handle: TypeHandle<Resource>,
+    resource_handle: TypeHandle<VirtualResource>,
     _marker: PhantomData<ResourceType>,
-}
-
-impl<ResourceType> Debug for ResourceNodeHandle<ResourceType> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ResourceNodeHandle")
-            .field("resource_node_handle", &self.resource_node_handle)
-            .field("resource_handle", &self.resource_handle)
-            .finish()
-    }
 }
 
 impl<ResourceType> ResourceNodeHandle<ResourceType> {
@@ -105,13 +96,13 @@ impl<ResourceType> ResourceNodeHandle<ResourceType> {
         self.resource_node_handle
     }
 
-    pub fn resource_handle(&self) -> TypeHandle<Resource> {
+    pub fn resource_handle(&self) -> TypeHandle<VirtualResource> {
         self.resource_handle
     }
 
     pub fn new(
         resource_node_handle: TypeHandle<ResourceNode>,
-        resource_handle: TypeHandle<Resource>,
+        resource_handle: TypeHandle<VirtualResource>,
     ) -> Self {
         ResourceNodeHandle {
             resource_node_handle,
@@ -135,7 +126,7 @@ impl<ResourceType> ResourceNodeHandle<ResourceType> {}
 
 pub struct ResourceNode {
     ///资源索引
-    pub resource_handle: TypeHandle<Resource>,
+    pub resource_handle: TypeHandle<VirtualResource>,
     ///自身索引
     pub handle: TypeHandle<ResourceNode>,
     /// 资源版本
@@ -147,7 +138,7 @@ pub struct ResourceNode {
 impl ResourceNode {
     pub fn new(
         handle: TypeHandle<ResourceNode>,
-        resource_handle: TypeHandle<Resource>,
+        resource_handle: TypeHandle<VirtualResource>,
         version: u32,
     ) -> Self {
         ResourceNode {

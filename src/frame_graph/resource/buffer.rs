@@ -1,7 +1,12 @@
 use crate::{
-    frame_graph::{AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor, ImportToFrameGraph},
+    frame_graph::{
+        AnyFGResource, AnyFGResourceDescriptor, FGResource, FGResourceDescriptor,
+        ImportToFrameGraph,
+    },
     gfx_base::buffer::{Buffer, BufferDescriptor},
 };
+
+use super::ImportedVirtualResource;
 
 impl FGResourceDescriptor for BufferDescriptor {
     type Resource = Buffer;
@@ -14,8 +19,8 @@ impl From<BufferDescriptor> for AnyFGResourceDescriptor {
 }
 
 impl ImportToFrameGraph for Buffer {
-    fn import(self: std::sync::Arc<Self>) -> super::ImportedResource {
-        super::ImportedResource::Buffer(self)
+    fn import(self: std::sync::Arc<Self>) -> ImportedVirtualResource {
+        ImportedVirtualResource::Buffer(self)
     }
 }
 

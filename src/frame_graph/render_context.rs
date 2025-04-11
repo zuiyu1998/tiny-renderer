@@ -9,11 +9,10 @@ use crate::{
         device::Device,
         handle::TypeHandle,
         pipeline::{PipelineCache, RenderPipeline},
-        texture_view::TextureView,
     },
 };
 
-use super::{GpuRead, GpuWrite, Resource, ResourceNodeRef, ResourceTable, SwapChain};
+use super::{GpuRead, GpuWrite, ResourceNodeRef, ResourceTable};
 
 pub type DynRenderFn = dyn FnOnce(&mut RenderContext) -> Result<(), RendererError>;
 
@@ -36,11 +35,6 @@ impl<'a> RenderContext<'a> {
 
     pub fn take_cb(&mut self) -> Option<CommandBuffer> {
         self.cb.take()
-    }
-
-    pub fn get_texture_view_with_swap_chain(&self, handle: &TypeHandle<Resource>) -> TextureView {
-        let swap_chain: &SwapChain = self.resource_table.get_resource(handle).unwrap();
-        swap_chain.get_texture_view()
     }
 
     pub fn set_render_pipeline(&mut self, handle: &TypeHandle<RenderPipeline>) {

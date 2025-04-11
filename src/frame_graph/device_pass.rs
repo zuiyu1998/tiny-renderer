@@ -1,6 +1,6 @@
 use crate::gfx_base::{handle::TypeHandle, render_pass::RenderPassDescriptor};
 
-use super::{DynRenderFn, FrameGraph, PassNode, RenderContext, Resource};
+use super::{DynRenderFn, FrameGraph, PassNode, RenderContext, VirtualResource};
 
 pub struct DevicePass {
     logic_pass: LogicPass,
@@ -59,5 +59,5 @@ impl DevicePass {
 #[derive(Default)]
 pub struct LogicPass {
     pub render_fn: Option<Box<DynRenderFn>>,
-    pub resource_release_array: Vec<TypeHandle<Resource>>,
+    pub resource_release_array: Vec<TypeHandle<VirtualResource>>,
 }

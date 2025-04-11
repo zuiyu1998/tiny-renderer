@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    frame_graph::{AnyFGResource, FGResource, ImportedResource, Resource},
+    frame_graph::{AnyFGResource, FGResource, ImportedVirtualResource, VirtualResource},
     gfx_base::{
         device::Device,
         handle::{RawTypeHandle, TypeHandle},
@@ -19,7 +19,7 @@ pub struct ResourceTable {
 impl ResourceTable {
     pub fn get_resource<ResourceType: FGResource>(
         &self,
-        handle: &TypeHandle<Resource>,
+        handle: &TypeHandle<VirtualResource>,
     ) -> Option<&ResourceType> {
         self.resources
             .get(&handle.raw_handle())
@@ -28,7 +28,7 @@ impl ResourceTable {
 
     pub fn get_resource_mut<ResourceType: FGResource>(
         &mut self,
-        handle: &TypeHandle<Resource>,
+        handle: &TypeHandle<VirtualResource>,
     ) -> Option<&mut ResourceType> {
         self.resources
             .get_mut(&handle.raw_handle())
@@ -37,17 +37,17 @@ impl ResourceTable {
 
     pub fn request_resources(
         &mut self,
-        resource: &Resource,
+        resource: &VirtualResource,
         device: &Device,
         transient_resource_cache: &mut TransientResourceCache,
     ) {
         let handle = resource.info.handle.raw_handle();
         let resource = match &resource.state {
             ResourceState::Imported(state) => match &state.resource {
-                ImportedResource::Texture(resource) => {
+                ImportedVirtualResource::Texture(resource) => {
                     AnyFGResource::ImportedTexture(resource.clone())
                 }
-                ImportedResource::Buffer(resource) => {
+                ImportedVirtualResource::Buffer(resource) => {
                     AnyFGResource::ImportedBuffer(resource.clone())
                 }
             },

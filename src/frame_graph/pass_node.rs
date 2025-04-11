@@ -1,7 +1,7 @@
 use crate::gfx_base::{color_attachment::ColorAttachment, handle::TypeHandle};
 
 use super::{
-    DynRenderFn, FrameGraph, GpuRead, GpuWrite, LogicPass, Resource, ResourceNode,
+    DynRenderFn, FrameGraph, GpuRead, GpuWrite, LogicPass, VirtualResource, ResourceNode,
     ResourceNodeHandle, ResourceNodeRef,
 };
 
@@ -12,8 +12,8 @@ pub struct PassNode {
     pub writes: Vec<TypeHandle<ResourceNode>>,
     pub reads: Vec<TypeHandle<ResourceNode>>,
     pub insert_point: u32,
-    pub resource_request_array: Vec<TypeHandle<Resource>>,
-    pub resource_release_array: Vec<TypeHandle<Resource>>,
+    pub resource_request_array: Vec<TypeHandle<VirtualResource>>,
+    pub resource_release_array: Vec<TypeHandle<VirtualResource>>,
     pub color_attachments: Vec<ColorAttachment>,
 }
 

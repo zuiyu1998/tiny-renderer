@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::{
-    DevicePass, ImportedResource, PassNode, RenderContext, Resource, ResourceBoard, ResourceInfo,
+    DevicePass, ImportedVirtualResource, PassNode, RenderContext, VirtualResource, ResourceBoard, ResourceInfo,
     ResourceNode, ResourceNodeHandle, ResourceTable, SwapChain, SwapChainDescriptor, Texture,
     TextureDescriptor, TransientResourceCache, pass_node_builder::PassNodeBuilder,
 };
@@ -18,7 +18,7 @@ pub trait ImportToFrameGraph
 where
     Self: Sized + FGResource,
 {
-    fn import(self: Arc<Self>) -> ImportedResource;
+    fn import(self: Arc<Self>) -> ImportedVirtualResource;
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -176,7 +176,7 @@ impl CompiledFrameGraph {
 #[derive(Default)]
 pub struct FrameGraph {
     pub(crate) pass_nodes: Vec<PassNode>,
-    resources: Vec<Resource>,
+    resources: Vec<VirtualResource>,
     resource_nodes: Vec<ResourceNode>,
     resource_board: ResourceBoard,
     render_pipeline_descs: Vec<RenderPipelineDescriptor>,
@@ -296,11 +296,11 @@ impl FrameGraph {
         &mut self.resource_nodes[handle.index()]
     }
 
-    pub fn get_resource(&self, handle: &TypeHandle<Resource>) -> &Resource {
+    pub fn get_resource(&self, handle: &TypeHandle<VirtualResource>) -> &VirtualResource {
         &self.resources[handle.index()]
     }
 
-    pub fn get_resource_mut(&mut self, handle: &TypeHandle<Resource>) -> &mut Resource {
+    pub fn get_resource_mut(&mut self, handle: &TypeHandle<VirtualResource>) -> &mut VirtualResource {
         &mut self.resources[handle.index()]
     }
 
@@ -339,15 +339,15 @@ impl FrameGraph {
     pub(crate) fn imported<ResourceType>(
         &mut self,
         name: &str,
-        imported_resource: ImportedResource,
+        imported_resource: ImportedVirtualResource,
         desc: ResourceType::Descriptor,
     ) -> ResourceNodeHandle<ResourceType>
     where
         ResourceType: FGResource,
     {
         let resource_handle = TypeHandle::new(self.resources.len());
-        let resource: Resource =
-            Resource::new_imported::<ResourceType>(name, resource_handle, desc, imported_resource);
+        let resource: VirtualResource =
+            VirtualResource::new_imported::<ResourceType>(name, resource_handle, desc, imported_resource);
 
         let resource_info = resource.info.clone();
         self.resources.push(resource);
@@ -367,7 +367,7 @@ impl FrameGraph {
     {
         let resource_handle = TypeHandle::new(self.resources.len());
 
-        let resource: Resource = Resource::setup::<DescriptorType::Resource>(
+        let resource: VirtualResource = VirtualResource::new_setuped::<DescriptorType::Resource>(
             name,
             resource_handle,
             TypeEquals::same(desc),
