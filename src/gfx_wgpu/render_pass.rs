@@ -7,7 +7,6 @@ use crate::{
     },
 };
 
-#[derive(Debug)]
 pub struct WgpuRenderPass {
     desc: RenderPassDescriptor,
     pub texture_views: Option<Vec<TextureView>>,

@@ -9,9 +9,9 @@ use crate::frame_graph::{
 
 define_atomic_id!(TextureId);
 
-pub trait TextureTrait: 'static + Debug {}
+pub trait TextureTrait: 'static {}
 
-pub trait ErasedTextureTrait: 'static + Downcast + Debug {}
+pub trait ErasedTextureTrait: 'static + Downcast {}
 
 impl<T: TextureTrait> ErasedTextureTrait for T {}
 

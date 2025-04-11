@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-use super::{GpuRead, GpuWrite, Resource, ResourceRef, ResourceTable, SwapChain};
+use super::{GpuRead, GpuWrite, Resource, ResourceNodeRef, ResourceTable, SwapChain};
 
 pub type DynRenderFn = dyn FnOnce(&mut RenderContext) -> Result<(), RendererError>;
 
@@ -52,7 +52,7 @@ impl<'a> RenderContext<'a> {
         }
     }
 
-    pub fn set_vertex_buffer(&mut self, slot: u32, handle: ResourceRef<Buffer, GpuRead>) {
+    pub fn set_vertex_buffer(&mut self, slot: u32, handle: ResourceNodeRef<Buffer, GpuRead>) {
         if let Some(buffer) = self.resource_table.get_resource(&handle.resource_handle()) {
             if let Some(cb) = self.cb.as_mut() {
                 cb.set_vertex_buffer(slot, buffer);
@@ -92,8 +92,8 @@ impl<'a> RenderContext<'a> {
         name: &str,
     ) -> Option<&ResourceType> {
         if let Some(handle) = self.resource_board.get(name) {
-            let handle: ResourceRef<ResourceType, GpuRead> =
-                ResourceRef::new(handle.clone().into());
+            let handle: ResourceNodeRef<ResourceType, GpuRead> =
+                ResourceNodeRef::new(handle.clone().into());
             self.get_resource(&handle)
         } else {
             None
@@ -102,14 +102,14 @@ impl<'a> RenderContext<'a> {
 
     pub fn get_resource<ResourceType: FGResource>(
         &self,
-        handle: &ResourceRef<ResourceType, GpuRead>,
+        handle: &ResourceNodeRef<ResourceType, GpuRead>,
     ) -> Option<&ResourceType> {
         self.resource_table.get_resource(&handle.resource_handle())
     }
 
     pub fn get_resource_mut<ResourceType: FGResource>(
         &self,
-        handle: &ResourceRef<ResourceType, GpuWrite>,
+        handle: &ResourceNodeRef<ResourceType, GpuWrite>,
     ) -> Option<&ResourceType> {
         self.resource_table.get_resource(&handle.resource_handle())
     }

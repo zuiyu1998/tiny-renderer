@@ -11,7 +11,7 @@ use crate::{
 use super::{AnyFGResourceDescriptor, ResourceState, TransientResourceCache};
 
 ///用于渲染的资源表
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct ResourceTable {
     resources: HashMap<RawTypeHandle, AnyFGResource>,
 }

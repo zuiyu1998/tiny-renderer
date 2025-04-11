@@ -75,8 +75,6 @@ impl DeviceTrait for WgpuDevice {
             }
         }
 
-        // self.queue.write_buffer_with(buffer, offset, size);
-
         self.queue.submit(targets);
     }
 

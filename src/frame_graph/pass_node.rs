@@ -2,23 +2,18 @@ use crate::gfx_base::{color_attachment::ColorAttachment, handle::TypeHandle};
 
 use super::{
     DynRenderFn, FrameGraph, GpuRead, GpuWrite, LogicPass, Resource, ResourceNode,
-    ResourceNodeHandle, ResourceRef,
+    ResourceNodeHandle, ResourceNodeRef,
 };
 
 pub struct PassNode {
-    ///唯一的节点名称
     pub name: String,
     pub handle: TypeHandle<PassNode>,
     pub render_fn: Option<Box<DynRenderFn>>,
     pub writes: Vec<TypeHandle<ResourceNode>>,
     pub reads: Vec<TypeHandle<ResourceNode>>,
-    ///渲染节点的插入顺序
     pub insert_point: u32,
-    ///使用资源的获取生命周期
     pub resource_request_array: Vec<TypeHandle<Resource>>,
-    ///使用资源的释放生命周期
     pub resource_release_array: Vec<TypeHandle<Resource>>,
-    //render pass 配置
     pub color_attachments: Vec<ColorAttachment>,
 }
 
@@ -40,7 +35,7 @@ impl PassNode {
         &mut self,
         graph: &mut FrameGraph,
         resource_node_handle: ResourceNodeHandle<ResourceType>,
-    ) -> ResourceRef<ResourceType, GpuWrite> {
+    ) -> ResourceNodeRef<ResourceType, GpuWrite> {
         let resource_handle = graph
             .get_resource_node(&resource_node_handle.resource_node_handle())
             .resource_handle;
@@ -54,7 +49,7 @@ impl PassNode {
 
         self.writes.push(new_resource_node_handle);
 
-        ResourceRef::new(ResourceNodeHandle::new(
+        ResourceNodeRef::new(ResourceNodeHandle::new(
             new_resource_node_handle,
             resource_handle,
         ))
@@ -64,13 +59,13 @@ impl PassNode {
         &mut self,
         graph: &FrameGraph,
         name: &str,
-    ) -> Option<ResourceRef<ResourceType, GpuRead>> {
+    ) -> Option<ResourceNodeRef<ResourceType, GpuRead>> {
         if let Some(handle) = graph.get_resource_board().get(name) {
             if !self.reads.contains(&handle.resource_node_handle()) {
                 self.reads.push(handle.resource_node_handle());
             }
 
-            Some(ResourceRef::new(handle.clone().into()))
+            Some(ResourceNodeRef::new(handle.clone().into()))
         } else {
             None
         }
@@ -80,7 +75,7 @@ impl PassNode {
         &mut self,
         graph: &FrameGraph,
         resource_node_handle: ResourceNodeHandle<ResourceType>,
-    ) -> ResourceRef<ResourceType, GpuRead> {
+    ) -> ResourceNodeRef<ResourceType, GpuRead> {
         let resource_node_handle = resource_node_handle.resource_node_handle();
 
         if !self.reads.contains(&resource_node_handle) {
@@ -91,7 +86,7 @@ impl PassNode {
             .get_resource_node(&resource_node_handle)
             .resource_handle;
 
-        ResourceRef::new(ResourceNodeHandle::new(
+        ResourceNodeRef::new(ResourceNodeHandle::new(
             resource_node_handle,
             resource_handle,
         ))

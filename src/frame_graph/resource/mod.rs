@@ -10,7 +10,6 @@ pub use texture::*;
 use super::{AnyFGResourceDescriptor, FGResource, pass_node::PassNode};
 use crate::gfx_base::{buffer::Buffer, handle::TypeHandle};
 
-#[derive(Debug)]
 pub enum ImportedResource {
     Texture(Arc<Texture>),
     Buffer(Arc<Buffer>),
@@ -98,13 +97,11 @@ impl ResourceInfo {
     }
 }
 
-#[derive(Debug)]
 pub struct ImportedResourceState {
     pub desc: AnyFGResourceDescriptor,
     pub resource: ImportedResource,
 }
 
-#[derive(Debug)]
 pub enum ResourceState {
     Setup(AnyFGResourceDescriptor),
     Imported(ImportedResourceState),

@@ -8,18 +8,18 @@ use super::color_attachment::ColorAttachment;
 
 define_atomic_id!(RenderPassId);
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone)]
 pub struct RenderPassDescriptor {
     pub color_attachments: Vec<ColorAttachment>,
 }
 
 impl RenderPassDescriptor {}
 
-pub trait RenderPassTrait: 'static + Debug {
+pub trait RenderPassTrait: 'static {
     fn do_init(&mut self, render_context: &RenderContext);
 }
 
-pub trait ErasedRenderPassTrait: 'static + Debug + Downcast {
+pub trait ErasedRenderPassTrait: 'static + Downcast {
     fn do_init(&mut self, render_context: &RenderContext);
 }
 

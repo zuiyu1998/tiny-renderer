@@ -44,12 +44,10 @@ pub enum PipelineCacheError {
     CreateShaderModule(String),
 }
 
-#[derive(Debug)]
 pub enum Pipeline {
     RenderPipeline(RenderPipeline),
 }
 
-#[derive(Debug)]
 pub enum CachedPipelineState {
     Queued,
     /// The pipeline GPU object was created successfully and is available (allocated on the GPU).
@@ -57,12 +55,10 @@ pub enum CachedPipelineState {
     Err(PipelineCacheError),
 }
 
-#[derive(Debug)]
 pub enum PipelineDescriptor {
     RenderPipelineDescriptor(Box<RenderPipelineDescriptor>),
 }
 
-#[derive(Debug)]
 pub struct CachedPipeline {
     pub descriptor: PipelineDescriptor,
     pub state: CachedPipelineState,
@@ -70,7 +66,7 @@ pub struct CachedPipeline {
 
 type LayoutCacheKey = (Vec<BindGroupLayoutId>, Vec<PushConstantRange>);
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 struct LayoutCache {
     layouts: HashMap<LayoutCacheKey, Arc<PipelineLayout>>,
 }
@@ -99,7 +95,6 @@ impl LayoutCache {
     }
 }
 
-#[derive(Debug)]
 pub struct PipelineCache {
     shader_cache: ShaderCache,
     layout_cache: LayoutCache,

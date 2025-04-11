@@ -11,7 +11,7 @@ use crate::{
 
 use super::{
     FGResource, FGResourceDescriptor, FrameGraph, GpuRead, GpuWrite, ImportToFrameGraph, PassNode,
-    RenderContext, ResourceNodeHandle, ResourceRef, TypeEquals,
+    RenderContext, ResourceNodeHandle, ResourceNodeRef, TypeEquals,
 };
 
 pub struct PassNodeBuilder<'a> {
@@ -44,14 +44,11 @@ impl<'a> PassNodeBuilder<'a> {
         mut self,
         render: impl (FnOnce(&mut RenderContext) -> Result<(), RendererError>) + 'static,
     ) {
-        let prev = self
-            .pass_node
+        self.pass_node
             .as_mut()
             .unwrap()
             .render_fn
             .replace(Box::new(render));
-
-        assert!(prev.is_none());
     }
 
     pub fn new(insert_point: u32, name: &str, graph: &'a mut FrameGraph) -> Self {
@@ -63,6 +60,8 @@ impl<'a> PassNodeBuilder<'a> {
     }
 
     fn build(&mut self) {
+        assert_eq!(self.pass_node.as_ref().unwrap().render_fn.is_some(), true);
+
         let pass_node = self.pass_node.take().unwrap();
         self.graph.pass_nodes.push(pass_node);
     }
@@ -93,7 +92,7 @@ impl<'a> PassNodeBuilder<'a> {
     pub fn read_from_board<ResourceType>(
         &mut self,
         name: &str,
-    ) -> Option<ResourceRef<ResourceType, GpuRead>> {
+    ) -> Option<ResourceNodeRef<ResourceType, GpuRead>> {
         self.pass_node
             .as_mut()
             .unwrap()
@@ -103,7 +102,7 @@ impl<'a> PassNodeBuilder<'a> {
     pub fn read<ResourceType>(
         &mut self,
         input_handle: ResourceNodeHandle<ResourceType>,
-    ) -> ResourceRef<ResourceType, GpuRead> {
+    ) -> ResourceNodeRef<ResourceType, GpuRead> {
         self.pass_node
             .as_mut()
             .unwrap()
@@ -113,7 +112,7 @@ impl<'a> PassNodeBuilder<'a> {
     pub fn write<ResourceType>(
         &mut self,
         out_handle: ResourceNodeHandle<ResourceType>,
-    ) -> ResourceRef<ResourceType, GpuWrite> {
+    ) -> ResourceNodeRef<ResourceType, GpuWrite> {
         self.pass_node
             .as_mut()
             .unwrap()

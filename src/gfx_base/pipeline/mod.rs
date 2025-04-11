@@ -27,7 +27,7 @@ pub struct VertexBufferLayout {
     pub attributes: Vec<VertexAttribute>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub struct RenderPipelineDescriptor {
     pub label: Option<Cow<'static, str>>,
     /// The layout of bind groups for this pipeline.

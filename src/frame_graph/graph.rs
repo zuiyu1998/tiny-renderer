@@ -28,7 +28,6 @@ pub enum AnyFGResourceDescriptor {
     SwapChain(SwapChainDescriptor),
 }
 
-#[derive(Debug)]
 pub enum AnyFGResource {
     OwnedTexture(Texture),
     OwnedBuffer(Buffer),
@@ -37,7 +36,7 @@ pub enum AnyFGResource {
     OwnedSwapChain(SwapChain),
 }
 
-pub trait FGResource: 'static + Debug {
+pub trait FGResource: 'static {
     type Descriptor: FGResourceDescriptor;
 
     fn borrow_resource(res: &AnyFGResource) -> &Self;

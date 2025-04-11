@@ -5,29 +5,21 @@ use crate::gfx_base::handle::TypeHandle;
 use super::{PassNode, Resource};
 
 ///用于控制资源是否可写
-pub struct ResourceRef<ResourceType, ViewType> {
+pub struct ResourceNodeRef<ResourceType, ViewType> {
     handle: ResourceNodeHandle<ResourceType>,
     _marker: PhantomData<ViewType>,
 }
 
-impl<ResourceType, ViewType> Debug for ResourceRef<ResourceType, ViewType> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ResourceRef")
-            .field("handle", &self.handle)
-            .finish()
-    }
-}
-
-impl<ResourceType, ViewType> Clone for ResourceRef<ResourceType, ViewType> {
+impl<ResourceType, ViewType> Clone for ResourceNodeRef<ResourceType, ViewType> {
     fn clone(&self) -> Self {
-        ResourceRef {
+        ResourceNodeRef {
             handle: self.handle.clone(),
             _marker: PhantomData,
         }
     }
 }
 
-impl<ResourceType, ViewType> ResourceRef<ResourceType, ViewType> {
+impl<ResourceType, ViewType> ResourceNodeRef<ResourceType, ViewType> {
     pub fn resource_node_handle(&self) -> TypeHandle<ResourceNode> {
         self.handle.resource_node_handle
     }

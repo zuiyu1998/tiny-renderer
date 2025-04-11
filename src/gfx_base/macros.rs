@@ -43,7 +43,6 @@ macro_rules! define_gfx_type {
     ($gfx_type:ident, $gfx_type_type_id: ident, $gfx_type_trait: ident, $erased_gfx_type_trait:ident) => {
         use downcast_rs::impl_downcast;
 
-        #[derive(Debug)]
         pub struct $gfx_type {
             id: $gfx_type_type_id,
             value: Box<dyn $erased_gfx_type_trait>,
