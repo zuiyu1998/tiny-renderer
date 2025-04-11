@@ -1,12 +1,12 @@
 use crate::frame_graph::{GpuRead, ResourceNodeRef, SwapChain};
 
 #[derive(Clone)]
-pub enum ColorAttachment {
+pub enum ColorAttachmentInfo {
     SwapChain(ResourceNodeRef<SwapChain, GpuRead>),
 }
 
-impl ColorAttachment {
+impl ColorAttachmentInfo {
     pub fn swap_chain(handle: ResourceNodeRef<SwapChain, GpuRead>) -> Self {
-        ColorAttachment::SwapChain(handle)
+        ColorAttachmentInfo::SwapChain(handle)
     }
 }

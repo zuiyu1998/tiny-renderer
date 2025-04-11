@@ -4,13 +4,13 @@ use std::fmt::Debug;
 
 use crate::frame_graph::RenderContext;
 
-use super::color_attachment::ColorAttachment;
+use super::color_attachment::ColorAttachmentInfo;
 
 define_atomic_id!(RenderPassId);
 
 #[derive(Default, Clone)]
 pub struct RenderPassDescriptor {
-    pub color_attachments: Vec<ColorAttachment>,
+    pub color_attachments: Vec<ColorAttachmentInfo>,
 }
 
 impl RenderPassDescriptor {}

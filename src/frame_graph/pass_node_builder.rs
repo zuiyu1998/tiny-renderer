@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     error::RendererError,
-    gfx_base::{color_attachment::ColorAttachment, handle::TypeHandle},
+    gfx_base::{color_attachment::ColorAttachmentInfo, handle::TypeHandle},
 };
 
 use super::{
@@ -22,7 +22,7 @@ impl Drop for PassNodeBuilder<'_> {
 }
 
 impl<'a> PassNodeBuilder<'a> {
-    pub fn add_attachment(&mut self, color_attachment: ColorAttachment) {
+    pub fn add_attachment_info(&mut self, color_attachment: ColorAttachmentInfo) {
         self.pass_node
             .as_mut()
             .unwrap()

@@ -1,4 +1,4 @@
-use crate::gfx_base::{color_attachment::ColorAttachment, handle::TypeHandle};
+use crate::gfx_base::{color_attachment::ColorAttachmentInfo, handle::TypeHandle};
 
 use super::{
     DynRenderFn, FrameGraph, GpuRead, GpuWrite, ResourceNode, ResourceNodeHandle, ResourceNodeRef,
@@ -14,11 +14,11 @@ pub struct PassNode {
     pub insert_point: u32,
     pub resource_request_array: Vec<TypeHandle<VirtualResource>>,
     pub resource_release_array: Vec<TypeHandle<VirtualResource>>,
-    pub color_attachments: Vec<ColorAttachment>,
+    pub color_attachments: Vec<ColorAttachmentInfo>,
 }
 
 impl PassNode {
-    pub fn add_attachment(&mut self, color_attachment: ColorAttachment) {
+    pub fn add_attachment(&mut self, color_attachment: ColorAttachmentInfo) {
         self.color_attachments.push(color_attachment);
     }
 

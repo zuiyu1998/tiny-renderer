@@ -1,7 +1,7 @@
 use crate::{
     frame_graph::RenderContext,
     gfx_base::{
-        color_attachment::ColorAttachment,
+        color_attachment::ColorAttachmentInfo,
         render_pass::{RenderPassDescriptor, RenderPassTrait},
         texture_view::TextureView,
     },
@@ -27,7 +27,7 @@ impl RenderPassTrait for WgpuRenderPass {
 
         for color_attachment in self.desc.color_attachments.iter() {
             match color_attachment {
-                ColorAttachment::SwapChain(handle) => {
+                ColorAttachmentInfo::SwapChain(handle) => {
                     if let Some(resource) = render_context.get_resource(&handle) {
                         texture_views.push(resource.get_texture_view());
                     }

@@ -4,7 +4,7 @@ use fyrox_resource::event::ResourceEvent;
 
 use crate::{
     gfx_base::{device::Device, pipeline::PipelineCache, shader::Shader},
-    renderer::WorldRenderer,
+    world_renderer::WorldRenderer,
 };
 
 pub struct InitializationGraphicContext {
