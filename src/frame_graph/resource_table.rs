@@ -57,14 +57,9 @@ impl ResourceTable {
     ) {
         if let Some(resource) = self.resources.remove(handle) {
             match resource {
-                _ => {}
-            }
-        }
-    }
-
-    pub fn release_resources(self, _transient_resource_cache: &mut TransientResourceCache) {
-        for resource in self.resources.into_values() {
-            match resource {
+                AnyResource::OwnedSwapChain(swap_chain) => {
+                    swap_chain.present();
+                }
                 _ => {}
             }
         }

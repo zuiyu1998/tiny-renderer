@@ -70,7 +70,7 @@ impl State {
             .event_broadcaster
             .add(shader_event_sender);
 
-        graphic_context.initialization(device, shader_event_receiver, surface_format);
+        graphic_context.initialization(device, shader_event_receiver);
 
         State {
             window,

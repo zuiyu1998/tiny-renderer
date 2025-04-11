@@ -5,7 +5,7 @@ use wgpu::util::DeviceExt;
 use crate::{
     frame_graph::{SwapChain, SwapChainInfo},
     gfx_base::{
-        buffer::{Buffer, BufferInfo, BufferInitDescriptor},
+        buffer::{Buffer, BufferInfo, BufferInitInfo},
         command_buffer::CommandBuffer,
         device::DeviceTrait,
         pipeline::{RenderPipeline, RenderPipelineDescriptorState},
@@ -208,7 +208,7 @@ impl DeviceTrait for WgpuDevice {
         Buffer::new(WgpuBuffer { buffer }, desc)
     }
 
-    fn create_buffer_init(&self, desc: BufferInitDescriptor) -> Buffer {
+    fn create_buffer_init(&self, desc: BufferInitInfo) -> Buffer {
         let buffer = self
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {

@@ -93,21 +93,21 @@ impl<'a> PassNodeBuilder<'a> {
 
     pub fn read<ResourceType>(
         &mut self,
-        input_handle: ResourceNodeHandle<ResourceType>,
+        resource_node_handle: ResourceNodeHandle<ResourceType>,
     ) -> ResourceNodeRef<ResourceType, GpuRead> {
         self.pass_node
             .as_mut()
             .unwrap()
-            .read(self.graph, input_handle)
+            .read(self.graph, resource_node_handle)
     }
 
     pub fn write<ResourceType>(
         &mut self,
-        out_handle: ResourceNodeHandle<ResourceType>,
+        resource_node_handle: ResourceNodeHandle<ResourceType>,
     ) -> ResourceNodeRef<ResourceType, GpuWrite> {
         self.pass_node
             .as_mut()
             .unwrap()
-            .write(self.graph, out_handle)
+            .write(self.graph, resource_node_handle)
     }
 }

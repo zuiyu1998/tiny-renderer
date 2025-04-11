@@ -1,13 +1,9 @@
 use std::sync::{Arc, mpsc::Receiver};
 
-use fyrox_core::parking_lot::Mutex;
 use fyrox_resource::event::ResourceEvent;
-use wgpu::{BufferUsages, TextureFormat};
 
 use crate::{
-    gfx_base::{
-        buffer::BufferInitDescriptor, device::Device, pipeline::PipelineCache, shader::Shader,
-    },
+    gfx_base::{device::Device, pipeline::PipelineCache, shader::Shader},
     renderer::WorldRenderer,
 };
 
@@ -16,6 +12,7 @@ pub struct InitializationGraphicContext {
     params: GraphicContextParams,
     shader_event_receiver: Receiver<ResourceEvent>,
     pipeline_cache: PipelineCache,
+    vertex_buffers: Vec<Vertex>,
 }
 
 impl InitializationGraphicContext {
@@ -41,26 +38,19 @@ impl InitializationGraphicContext {
             },
         ];
 
-        let buffer = device.create_buffer_init(BufferInitDescriptor {
-            label: Some("vertex_buffer".into()),
-            usage: BufferUsages::VERTEX,
-            contents: bytemuck::cast_slice(&vertex_buffers),
-        });
-
-        let vertex_buffer = Mutex::new(Arc::new(buffer));
-
         InitializationGraphicContext {
             world_renderer,
             params,
             shader_event_receiver,
             pipeline_cache: PipelineCache::new(device),
+            vertex_buffers,
         }
     }
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-struct Vertex {
+pub struct Vertex {
     position: [f32; 3],
     color: [f32; 3],
 }
@@ -85,7 +75,8 @@ impl InitializationGraphicContext {
     fn render(&mut self, dt: f32) {
         self.update_pipeline_cache(dt);
 
-        self.world_renderer.render(&mut self.pipeline_cache);
+        self.world_renderer
+            .render(&mut self.pipeline_cache, &self.vertex_buffers);
     }
 }
 
@@ -109,7 +100,6 @@ impl GraphicContext {
         &mut self,
         device: Arc<Device>,
         shader_event_receiver: Receiver<ResourceEvent>,
-        format: TextureFormat,
     ) {
         *self = GraphicContext::Initialization(Box::new(InitializationGraphicContext::new(
             device,

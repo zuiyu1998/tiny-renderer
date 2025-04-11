@@ -74,6 +74,11 @@ impl DevicePass {
             command_buffer.end_render_pass();
             render_context.device().submit(vec![command_buffer]);
         }
+
+        self.logic_pass.release_resources(
+            render_context.transient_resource_cache,
+            &mut render_context.resource_table,
+        );
     }
 
     pub fn execute(&mut self, render_context: &mut RenderContext) {
@@ -109,7 +114,7 @@ impl LogicPass {
     }
 
     pub fn release_resources(
-        &mut self,
+        &self,
         transient_resource_cache: &mut TransientResourceCache,
         resource_table: &mut ResourceTable,
     ) {

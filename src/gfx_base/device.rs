@@ -6,7 +6,7 @@ use downcast_rs::Downcast;
 use crate::frame_graph::{AnyResource, AnyResourceDescriptor, SwapChain};
 
 use super::{
-    buffer::{Buffer, BufferInfo, BufferInitDescriptor},
+    buffer::{Buffer, BufferInfo, BufferInitInfo},
     command_buffer::CommandBuffer,
     pipeline::{RenderPipeline, RenderPipelineDescriptorState},
     pipeline_layout::{PipelineLayout, PipelineLayoutDescriptor},
@@ -33,7 +33,7 @@ pub trait DeviceTrait: 'static + Sync + Send + Debug {
 
     fn submit(&self, command_buffers: Vec<CommandBuffer>);
 
-    fn create_buffer_init(&self, desc: BufferInitDescriptor) -> Buffer;
+    fn create_buffer_init(&self, desc: BufferInitInfo) -> Buffer;
 }
 
 pub trait ErasedDeviceTrait: 'static + Sync + Send + Debug + Downcast {
@@ -53,7 +53,7 @@ pub trait ErasedDeviceTrait: 'static + Sync + Send + Debug + Downcast {
 
     fn create_buffer(&self, desc: BufferInfo) -> Buffer;
 
-    fn create_buffer_init(&self, desc: BufferInitDescriptor) -> Buffer;
+    fn create_buffer_init(&self, desc: BufferInitInfo) -> Buffer;
 }
 
 impl<T: DeviceTrait> ErasedDeviceTrait for T {
@@ -85,7 +85,7 @@ impl<T: DeviceTrait> ErasedDeviceTrait for T {
         <T as DeviceTrait>::create_pipeline_layout(&self, desc)
     }
 
-    fn create_buffer_init(&self, desc: BufferInitDescriptor) -> Buffer {
+    fn create_buffer_init(&self, desc: BufferInitInfo) -> Buffer {
         <T as DeviceTrait>::create_buffer_init(&self, desc)
     }
 
@@ -101,6 +101,9 @@ impl Device {
         match desc {
             AnyResourceDescriptor::Buffer(desc) => {
                 AnyResource::OwnedBuffer(self.create_buffer(desc))
+            }
+            AnyResourceDescriptor::SwapChain(desc) => {
+                AnyResource::OwnedSwapChain(self.create_swap_chain(desc))
             }
             _ => {
                 todo!()
@@ -140,7 +143,7 @@ impl Device {
         self.value.create_buffer(desc)
     }
 
-    pub fn create_buffer_init(&self, desc: BufferInitDescriptor) -> Buffer {
+    pub fn create_buffer_init(&self, desc: BufferInitInfo) -> Buffer {
         self.value.create_buffer_init(desc)
     }
 }

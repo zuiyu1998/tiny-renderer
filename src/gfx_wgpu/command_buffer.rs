@@ -5,7 +5,7 @@ use crate::{
         command_buffer::CommandBufferTrait, device::Device, pipeline::RenderPipeline,
         render_pass::RenderPass,
     },
-    gfx_wgpu::{WgpuDevice, WgpuRenderPipeline, WgpuTextView, render_pass::WgpuRenderPass},
+    gfx_wgpu::{WgpuDevice, WgpuRenderPipeline, WgpuTextureView, render_pass::WgpuRenderPass},
 };
 
 use super::WgpuBuffer;
@@ -28,13 +28,18 @@ impl CommandBufferTrait for WgpuCommandBuffer {
         let texture_views = render_pass.texture_views.take().unwrap();
 
         for texture_view in texture_views.iter() {
-            let texture_view = texture_view.downcast_ref::<WgpuTextView>().unwrap();
+            let texture_view = texture_view.downcast_ref::<WgpuTextureView>().unwrap();
 
             color_attachments.push(Some(wgpu::RenderPassColorAttachment {
                 view: &texture_view.0,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.1,
+                        g: 0.2,
+                        b: 0.3,
+                        a: 1.0,
+                    }),
                     store: wgpu::StoreOp::Store,
                 },
             }));
@@ -42,11 +47,9 @@ impl CommandBufferTrait for WgpuCommandBuffer {
 
         let mut encoder = device.device.create_command_encoder(&Default::default());
         let render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
+            label: Some("Render Pass"),
             color_attachments: &color_attachments,
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
+            ..Default::default()
         });
 
         let render_pass = render_pass.forget_lifetime();
@@ -81,7 +84,7 @@ impl CommandBufferTrait for WgpuCommandBuffer {
             render_pass.draw(vertices, instances);
         }
     }
-    
+
     fn set_vertex_buffer(&mut self, slot: u32, buffer: &crate::gfx_base::buffer::Buffer) {
         let buffer = buffer.downcast_ref::<WgpuBuffer>().unwrap();
 
@@ -89,6 +92,4 @@ impl CommandBufferTrait for WgpuCommandBuffer {
             render_pass.set_vertex_buffer(slot, buffer.buffer.slice(0..));
         }
     }
-
-
 }

@@ -29,7 +29,7 @@ pub struct BufferInfo {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct BufferInitDescriptor<'a> {
+pub struct BufferInitInfo<'a> {
     pub label: Option<Cow<'static, str>>,
     pub contents: &'a [u8],
     pub usage: BufferUsages,
