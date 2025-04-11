@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use downcast_rs::{Downcast, impl_downcast};
 
-use crate::gfx_base::ColorAttachmentInfo;
+use crate::gfx_base::{ColorAttachmentInfo, device::Device, pipeline::PipelineCache};
 
 use super::{FrameGraphContext, renderer::Renderer};
 
@@ -10,6 +10,8 @@ pub trait RenderScheduleTrait: 'static + Downcast + Sync + Send {
     fn name() -> &'static str;
 
     fn prepare(&self, context: &mut FrameGraphContext);
+
+    fn from_pipeline_cache(_pipeline_cache: &mut PipelineCache) -> Self;
 }
 
 pub trait ErasedRenderScheduleTrait: 'static + Downcast + Sync + Send {
@@ -50,24 +52,22 @@ impl Renderer for RenderSchedules {
     }
 }
 
-impl Default for RenderSchedules {
-    fn default() -> Self {
-        let mut schedules = RenderSchedules::new();
-        schedules.add_schedule(CameraDriverSchedule);
-
-        schedules
-    }
-}
-
 impl RenderSchedules {
-    pub fn new() -> Self {
+    pub fn new(pipeline_cache: &mut PipelineCache) -> Self {
+        let mut schedules = RenderSchedules::empty();
+        
+        schedules.add_schedule(CameraDriverSchedule::from_pipeline_cache(pipeline_cache));
+        
+        schedules
+        
+    }
+
+    pub fn empty() -> Self {
         Self {
             schedules: Default::default(),
         }
     }
-}
 
-impl RenderSchedules {
     pub fn add_schedule<T: RenderScheduleTrait>(&mut self, value: T) {
         let schedule = RenderSchedule::new(value);
 
@@ -77,6 +77,8 @@ impl RenderSchedules {
 
 pub trait RenderStage {
     fn prepare(&self, context: &mut FrameGraphContext);
+
+    fn new(_device: &Arc<Device>, _pipeline_cache: &mut PipelineCache) -> Self;
 }
 
 pub struct CameraDriverSchedule;
@@ -98,5 +100,9 @@ impl RenderScheduleTrait for CameraDriverSchedule {
         builder.add_attachment_info(ColorAttachmentInfo::SwapChain(swap_chain_read));
 
         builder.render(|_render_context| Ok(()));
+    }
+
+    fn from_pipeline_cache(_pipeline_cache: &mut PipelineCache) -> Self {
+        CameraDriverSchedule
     }
 }

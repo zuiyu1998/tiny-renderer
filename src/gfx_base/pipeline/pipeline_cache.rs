@@ -101,7 +101,7 @@ pub struct PipelineCache {
     pipelines: Vec<CachedPipeline>,
     waiting_pipelines: HashSet<CachedPipelineId>,
     new_pipelines: Vec<CachedPipeline>,
-    device: Arc<Device>,
+    pub device: Arc<Device>,
 }
 
 impl PipelineCache {

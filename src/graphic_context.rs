@@ -1,19 +1,13 @@
 use std::sync::{Arc, mpsc::Receiver};
 
 use fyrox_resource::event::ResourceEvent;
-use wgpu::{ColorTargetState, TextureFormat};
 
 use crate::{
-    build_in::get_test,
-    gfx_base::{
-        device::Device,
-        pipeline::{
-            CachedRenderPipelineId, FragmentState, PipelineCache, RenderPipelineDescriptor,
-            VertexBufferLayout, VertexState,
-        },
-        shader::Shader,
+    gfx_base::{device::Device, pipeline::PipelineCache, shader::Shader},
+    world_renderer::{
+        MeshesRender, RenderCamera, WorldRenderer,
+        meshes::{MeshMaterial, Vertex},
     },
-    world_renderer::{RenderCamera, WorldRenderer},
 };
 
 pub struct InitializationGraphicContext {
@@ -30,7 +24,9 @@ impl InitializationGraphicContext {
         params: GraphicContextParams,
         shader_event_receiver: Receiver<ResourceEvent>,
     ) -> Self {
-        let world_renderer = WorldRenderer::new(device.clone());
+        let mut pipeline_cache = PipelineCache::new(device);
+
+        let world_renderer = WorldRenderer::new(&mut pipeline_cache);
 
         let vertex_buffers = vec![
             Vertex {
@@ -51,81 +47,10 @@ impl InitializationGraphicContext {
             world_renderer,
             params,
             shader_event_receiver,
-            pipeline_cache: PipelineCache::new(device),
+            pipeline_cache,
             mesh_material: MeshMaterial::new(vertex_buffers),
         }
     }
-}
-
-pub struct MeshMaterial {
-    pub vertex_buffers: Vec<Vertex>,
-    pub id: Option<CachedRenderPipelineId>,
-}
-
-impl MeshMaterial {
-    pub fn new(vertex_buffers: Vec<Vertex>) -> Self {
-        MeshMaterial {
-            vertex_buffers,
-            id: None,
-        }
-    }
-
-    fn register_render_pipeline(&mut self, pipeline_cache: &mut PipelineCache) {
-        if self.id.is_some() {
-            return;
-        }
-
-        let vertex_buffer_layout = VertexBufferLayout {
-            array_stride: core::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: vec![
-                wgpu::VertexAttribute {
-                    offset: 0,
-                    shader_location: 0,
-                    format: wgpu::VertexFormat::Float32x3,
-                },
-                wgpu::VertexAttribute {
-                    offset: core::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
-                    shader_location: 1,
-                    format: wgpu::VertexFormat::Float32x3,
-                },
-            ],
-        };
-
-        let test_desc = RenderPipelineDescriptor {
-            label: Some("test".into()),
-            vertex: VertexState {
-                shader: get_test().clone(),
-                shader_defs: vec![],
-                entry_point: "vs_main".into(),
-                buffers: vec![vertex_buffer_layout],
-            },
-            fragment: Some(FragmentState {
-                shader: get_test().clone(),
-                shader_defs: vec![],
-                entry_point: "fs_main".into(),
-                targets: vec![Some(ColorTargetState {
-                    format: TextureFormat::Rgba8UnormSrgb,
-                    blend: Some(wgpu::BlendState {
-                        color: wgpu::BlendComponent::REPLACE,
-                        alpha: wgpu::BlendComponent::REPLACE,
-                    }),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            layout: vec![],
-            push_constant_ranges: vec![],
-        };
-
-        self.id = Some(pipeline_cache.register_render_pipeline(test_desc));
-    }
-}
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Vertex {
-    position: [f32; 3],
-    color: [f32; 3],
 }
 
 impl InitializationGraphicContext {
