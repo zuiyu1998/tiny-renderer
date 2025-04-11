@@ -1,54 +1,34 @@
 use std::sync::Arc;
 
 use crate::gfx_base::device::Device;
+
+use crate::frame_graph::{FrameGraph, RenderContext, TransientResourceCache};
 use crate::gfx_base::pipeline::PipelineCache;
 
-use crate::frame_graph::{CompiledFrameGraph, FrameGraph, TransientResourceCache};
-
-pub struct Renderer {
-    compiled_fg: Option<CompiledFrameGraph>,
+pub struct WorldRenderer {
     device: Arc<Device>,
     transient_resource_cache: TransientResourceCache,
-    pipeline_cache: PipelineCache,
 }
 
-impl Renderer {
-    pub fn pipeline_cache_mut(&mut self) -> &mut PipelineCache {
-        &mut self.pipeline_cache
-    }
-
+impl WorldRenderer {
     pub fn new(device: Arc<Device>) -> Self {
-        Self {
-            compiled_fg: None,
-            transient_resource_cache: Default::default(),
-            pipeline_cache: PipelineCache::new(device.clone()),
+        WorldRenderer {
             device,
+            transient_resource_cache: TransientResourceCache::default(),
         }
     }
 
-    pub fn draw_frame(&mut self) {
-        let fg = match self.compiled_fg.take() {
-            Some(fg) => fg,
-            None => {
-                return;
-            }
-        };
-
-        let executing_rg = fg.begin_execute(&self.device, &mut self.transient_resource_cache);
-
-        let retired_frame_graph = executing_rg.execute(&self.device, &self.pipeline_cache);
-
-        retired_frame_graph.release_resources(&mut self.transient_resource_cache);
-    }
-
-    pub fn prepare_frame<PrepareFrameGraphFn>(&mut self, prepare_render_graph: PrepareFrameGraphFn)
-    where
-        PrepareFrameGraphFn: FnOnce(&mut FrameGraph),
-    {
+    pub fn render(&mut self, pipeline_cache: &mut PipelineCache) {
         let mut frame_graph = FrameGraph::default();
 
-        prepare_render_graph(&mut frame_graph);
+        frame_graph.compile();
 
-        self.compiled_fg = frame_graph.compile(&mut self.pipeline_cache);
+        let mut render_context = RenderContext::new(
+            &self.device,
+            pipeline_cache,
+            &mut self.transient_resource_cache,
+        );
+
+        frame_graph.execute(&mut render_context);
     }
 }

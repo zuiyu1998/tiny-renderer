@@ -57,11 +57,13 @@ where
     fn import(self: Arc<Self>) -> ImportedVirtualResource;
 }
 
+#[derive(Clone)]
 pub enum ImportedVirtualResource {
     Texture(Arc<Texture>),
     Buffer(Arc<Buffer>),
 }
 
+#[derive(Clone)]
 pub struct VirtualResource {
     pub state: ResourceState,
     pub info: ResourceInfo,
@@ -144,11 +146,13 @@ impl ResourceInfo {
     }
 }
 
+#[derive(Clone)]
 pub struct ImportedResourceState {
     pub desc: AnyResourceDescriptor,
     pub resource: ImportedVirtualResource,
 }
 
+#[derive(Clone)]
 pub enum ResourceState {
     Setup(AnyResourceDescriptor),
     Imported(ImportedResourceState),

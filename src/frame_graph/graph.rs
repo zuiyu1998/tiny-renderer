@@ -1,124 +1,11 @@
 use std::sync::Arc;
 
 use super::{
-    pass_node_builder::PassNodeBuilder, DevicePass, ImportToFrameGraph, ImportedVirtualResource, PassNode, RenderContext, Resource, ResourceBoard, ResourceDescriptor, ResourceInfo, ResourceNode, ResourceNodeHandle, ResourceTable, TransientResourceCache, TypeEquals, VirtualResource
+    DevicePass, ImportToFrameGraph, PassNode, RenderContext, Resource, ResourceBoard,
+    ResourceDescriptor, ResourceInfo, ResourceNode, ResourceNodeHandle, TypeEquals,
+    VirtualResource, pass_node_builder::PassNodeBuilder,
 };
-use crate::gfx_base::{
-    device::Device,
-    handle::TypeHandle,
-    pipeline::{CachedRenderPipelineId, PipelineCache, RenderPipeline, RenderPipelineDescriptor},
-};
-
-use std::fmt::Debug;
-
-pub struct ExecutingFrameGraph {
-    resource_table: ResourceTable,
-    device_passes: Vec<DevicePass>,
-    resource_board: ResourceBoard,
-    pipelines: CompiledPipelines,
-}
-
-pub struct RetiredFrameGraph {
-    resource_table: ResourceTable,
-}
-
-impl RetiredFrameGraph {
-    pub fn release_resources(self, transient_resource_cache: &mut TransientResourceCache) {
-        self.resource_table
-            .release_resources(transient_resource_cache);
-    }
-}
-
-impl ExecutingFrameGraph {
-    pub fn execute(mut self, device: &Device, pipeline_cache: &PipelineCache) -> RetiredFrameGraph {
-        let mut render_context = RenderContext::new(
-            &mut self.resource_table,
-            device,
-            &self.resource_board,
-            pipeline_cache,
-            &self.pipelines,
-        );
-
-        for i in 0..self.device_passes.len() {
-            let device_pass = &mut self.device_passes[i];
-            device_pass.execute(&mut render_context);
-        }
-
-        RetiredFrameGraph {
-            resource_table: self.resource_table,
-        }
-    }
-
-    pub fn new(
-        resource_table: ResourceTable,
-        device_passes: Vec<DevicePass>,
-        resource_board: ResourceBoard,
-        pipelines: CompiledPipelines,
-    ) -> Self {
-        ExecutingFrameGraph {
-            resource_table,
-            device_passes,
-            resource_board,
-            pipelines,
-        }
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct CompiledPipelines {
-    pub render_pipeline_ids: Vec<CachedRenderPipelineId>,
-}
-
-pub struct CompiledFrameGraph {
-    fg: FrameGraph,
-    resource_table: ResourceTable,
-    device_passes: Vec<DevicePass>,
-    pipelines: CompiledPipelines,
-}
-
-impl CompiledFrameGraph {
-    pub fn new(fg: FrameGraph, pipelines: CompiledPipelines) -> Self {
-        CompiledFrameGraph {
-            fg,
-            resource_table: ResourceTable::default(),
-            device_passes: vec![],
-            pipelines,
-        }
-    }
-
-    pub fn begin_execute(
-        mut self,
-        device: &Device,
-        transient_resource_cache: &mut TransientResourceCache,
-    ) -> ExecutingFrameGraph {
-        for index in 0..self.fg.pass_nodes.len() {
-            let pass_node_handle = self.fg.pass_nodes[index].handle;
-
-            for resource_handle in self
-                .fg
-                .get_pass_node(&pass_node_handle)
-                .resource_request_array
-                .clone()
-            {
-                let resource = self.fg.get_resource(&resource_handle);
-                self.resource_table
-                    .request_resources(resource, device, transient_resource_cache);
-            }
-
-            let mut device_pass = DevicePass::default();
-
-            device_pass.extra(&mut self.fg, pass_node_handle);
-            self.device_passes.push(device_pass);
-        }
-
-        ExecutingFrameGraph::new(
-            self.resource_table,
-            self.device_passes,
-            self.fg.resource_board,
-            self.pipelines,
-        )
-    }
-}
+use crate::gfx_base::handle::TypeHandle;
 
 #[derive(Default)]
 pub struct FrameGraph {
@@ -126,20 +13,30 @@ pub struct FrameGraph {
     resources: Vec<VirtualResource>,
     resource_nodes: Vec<ResourceNode>,
     resource_board: ResourceBoard,
-    render_pipeline_descs: Vec<RenderPipelineDescriptor>,
+    device_passes: Option<Vec<DevicePass>>,
 }
 
 impl FrameGraph {
-    pub fn compiled_pipelines(&self, pipeline_cache: &mut PipelineCache) -> CompiledPipelines {
-        let render_pipeline_ids: Vec<CachedRenderPipelineId> = self
-            .render_pipeline_descs
-            .iter()
-            .map(|desc| pipeline_cache.register_render_pipeline(desc.clone()))
-            .collect();
+    fn reset(&mut self) {
+        self.pass_nodes = vec![];
+        self.resources = vec![];
+        self.resource_nodes = vec![];
+        self.resource_board = Default::default();
+        self.device_passes = None;
+    }
 
-        CompiledPipelines {
-            render_pipeline_ids,
+    pub fn execute(&mut self, render_context: &mut RenderContext) {
+        if self.device_passes.is_none() {
+            return;
         }
+
+        let device_passes = self.device_passes.take().unwrap();
+
+        for mut device_pass in device_passes {
+            device_pass.execute(render_context);
+        }
+
+        self.reset();
     }
 
     pub fn compute_resource_lifetime(&mut self) {
@@ -183,9 +80,28 @@ impl FrameGraph {
             .sort_by(|a, b| a.insert_point.cmp(&b.insert_point));
     }
 
-    pub fn compile(mut self, pipeline_cache: &mut PipelineCache) -> Option<CompiledFrameGraph> {
+    fn generate_device_passes(&mut self) {
         if self.pass_nodes.is_empty() {
-            return None;
+            return;
+        }
+
+        let mut device_passes = vec![];
+
+        for index in 0..self.pass_nodes.len() {
+            let pass_node_handle = self.pass_nodes[index].handle;
+
+            let mut device_pass = DevicePass::default();
+
+            device_pass.extra(self, pass_node_handle);
+            device_passes.push(device_pass);
+        }
+
+        self.device_passes = Some(device_passes);
+    }
+
+    pub fn compile(&mut self) {
+        if self.pass_nodes.is_empty() {
+            return;
         }
 
         self.sort();
@@ -193,33 +109,11 @@ impl FrameGraph {
 
         self.compute_resource_lifetime();
 
-        let pipelines = self.compiled_pipelines(pipeline_cache);
-
-        Some(CompiledFrameGraph::new(self, pipelines))
+        self.generate_device_passes();
     }
 }
 
 impl FrameGraph {
-    pub fn register_render_pipeline(
-        &mut self,
-        desc: RenderPipelineDescriptor,
-    ) -> TypeHandle<RenderPipeline> {
-        if let Some(index) = self
-            .render_pipeline_descs
-            .iter()
-            .enumerate()
-            .find(|(_index, render_pipeline_desc)| **render_pipeline_desc == desc)
-            .map(|(index, _)| index)
-        {
-            TypeHandle::new(index)
-        } else {
-            let index = self.render_pipeline_descs.len();
-            self.render_pipeline_descs.push(desc);
-
-            TypeHandle::new(index)
-        }
-    }
-
     pub fn get_resource_board(&self) -> &ResourceBoard {
         &self.resource_board
     }
@@ -283,18 +177,6 @@ impl FrameGraph {
         ResourceType: ImportToFrameGraph,
     {
         let imported_resource = ImportToFrameGraph::import(resource);
-        self.imported(name, imported_resource, desc)
-    }
-
-    pub(crate) fn imported<ResourceType>(
-        &mut self,
-        name: &str,
-        imported_resource: ImportedVirtualResource,
-        desc: ResourceType::Descriptor,
-    ) -> ResourceNodeHandle<ResourceType>
-    where
-        ResourceType: Resource,
-    {
         let resource_handle = TypeHandle::new(self.resources.len());
         let resource: VirtualResource = VirtualResource::new_imported::<ResourceType>(
             name,
@@ -315,9 +197,16 @@ impl FrameGraph {
         handle
     }
 
-    pub fn create<DescriptorType>(&mut self, name: &str, desc: DescriptorType) -> ResourceNodeHandle<DescriptorType::Resource>
+    pub fn create<DescriptorType>(
+        &mut self,
+        name: &str,
+        desc: DescriptorType,
+    ) -> ResourceNodeHandle<DescriptorType::Resource>
     where
-        DescriptorType: ResourceDescriptor + TypeEquals<Other = <<DescriptorType as ResourceDescriptor>::Resource as Resource>::Descriptor>,
+        DescriptorType: ResourceDescriptor
+            + TypeEquals<
+                Other = <<DescriptorType as ResourceDescriptor>::Resource as Resource>::Descriptor,
+            >,
     {
         let resource_handle = TypeHandle::new(self.resources.len());
 

@@ -1,8 +1,8 @@
 use crate::gfx_base::{color_attachment::ColorAttachment, handle::TypeHandle};
 
 use super::{
-    DynRenderFn, FrameGraph, GpuRead, GpuWrite, LogicPass, VirtualResource, ResourceNode,
-    ResourceNodeHandle, ResourceNodeRef,
+    DynRenderFn, FrameGraph, GpuRead, GpuWrite, ResourceNode, ResourceNodeHandle, ResourceNodeRef,
+    VirtualResource,
 };
 
 pub struct PassNode {
@@ -18,15 +18,6 @@ pub struct PassNode {
 }
 
 impl PassNode {
-    pub(crate) fn take(&mut self) -> LogicPass {
-        let resource_release_array = self.resource_release_array.clone();
-        let render_fn = self.render_fn.take();
-        LogicPass {
-            render_fn,
-            resource_release_array,
-        }
-    }
-
     pub fn add_attachment(&mut self, color_attachment: ColorAttachment) {
         self.color_attachments.push(color_attachment);
     }

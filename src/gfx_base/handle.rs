@@ -1,9 +1,4 @@
-use std::{fmt::Debug, hash::Hash, marker::PhantomData};
-
-#[derive(Debug, Hash, PartialEq, Eq)]
-pub struct RawTypeHandle {
-    index: usize,
-}
+use std::{hash::Hash, marker::PhantomData};
 
 //类型索引
 pub struct TypeHandle<T> {
@@ -11,13 +6,13 @@ pub struct TypeHandle<T> {
     _marker: PhantomData<T>,
 }
 
-impl<T> Debug for TypeHandle<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TypeHandle")
-            .field("index", &self.index)
-            .finish()
+impl<T> Hash for TypeHandle<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.index.hash(state);
     }
 }
+
+impl<T> Eq for TypeHandle<T> {}
 
 impl<T> PartialEq for TypeHandle<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -33,20 +28,7 @@ impl<T> Clone for TypeHandle<T> {
     }
 }
 
-impl<T> From<RawTypeHandle> for TypeHandle<T> {
-    fn from(value: RawTypeHandle) -> Self {
-        TypeHandle {
-            index: value.index,
-            _marker: PhantomData,
-        }
-    }
-}
-
 impl<T> TypeHandle<T> {
-    pub fn raw_handle(&self) -> RawTypeHandle {
-        RawTypeHandle { index: self.index }
-    }
-
     pub fn index(&self) -> usize {
         self.index
     }

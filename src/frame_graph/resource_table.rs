@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     frame_graph::{AnyResource, ImportedVirtualResource, Resource, VirtualResource},
-    gfx_base::{
-        device::Device,
-        handle::{RawTypeHandle, TypeHandle},
-    },
+    gfx_base::{device::Device, handle::TypeHandle},
 };
 
 use super::{ResourceState, TransientResourceCache};
@@ -13,7 +10,7 @@ use super::{ResourceState, TransientResourceCache};
 ///用于渲染的资源表
 #[derive(Default)]
 pub struct ResourceTable {
-    resources: HashMap<RawTypeHandle, AnyResource>,
+    resources: HashMap<TypeHandle<VirtualResource>, AnyResource>,
 }
 
 impl ResourceTable {
@@ -22,17 +19,17 @@ impl ResourceTable {
         handle: &TypeHandle<VirtualResource>,
     ) -> Option<&ResourceType> {
         self.resources
-            .get(&handle.raw_handle())
+            .get(&handle)
             .map(|any| ResourceType::borrow_resource(any))
     }
 
-    pub fn request_resources(
+    pub fn request_resource(
         &mut self,
         resource: &VirtualResource,
         device: &Device,
         transient_resource_cache: &mut TransientResourceCache,
     ) {
-        let handle = resource.info.handle.raw_handle();
+        let handle = resource.info.handle.clone();
         let resource = match &resource.state {
             ResourceState::Imported(state) => match &state.resource {
                 ImportedVirtualResource::Texture(resource) => {
@@ -53,19 +50,21 @@ impl ResourceTable {
         self.resources.insert(handle, resource);
     }
 
+    pub fn release_resource(
+        &mut self,
+        handle: &TypeHandle<VirtualResource>,
+        _transient_resource_cache: &mut TransientResourceCache,
+    ) {
+        if let Some(resource) = self.resources.remove(handle) {
+            match resource {
+                _ => {}
+            }
+        }
+    }
+
     pub fn release_resources(self, _transient_resource_cache: &mut TransientResourceCache) {
         for resource in self.resources.into_values() {
             match resource {
-                AnyResource::OwnedSwapChain(swap_chain) => {
-                    swap_chain.present();
-                }
-
-                // AnyResource::OwnedTexture(texture) => {
-                //     transient_resource_cache.insert_resource(
-                //         AnyResourceDescriptor::Texture(texture.get_desc().clone()),
-                //         AnyResource::OwnedTexture(texture),
-                //     );
-                // }
                 _ => {}
             }
         }

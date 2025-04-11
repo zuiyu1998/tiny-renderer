@@ -2,27 +2,20 @@ use std::sync::{Arc, mpsc::Receiver};
 
 use fyrox_core::parking_lot::Mutex;
 use fyrox_resource::event::ResourceEvent;
-use wgpu::{BufferUsages, ColorTargetState, TextureFormat};
+use wgpu::{BufferUsages, TextureFormat};
 
 use crate::{
-    build_in::get_test,
-    frame_graph::SwapChainInfo,
     gfx_base::{
-        buffer::{Buffer, BufferInitDescriptor},
-        color_attachment::ColorAttachment,
-        device::Device,
-        pipeline::{FragmentState, RenderPipelineDescriptor, VertexBufferLayout, VertexState},
-        shader::Shader,
+        buffer::BufferInitDescriptor, device::Device, pipeline::PipelineCache, shader::Shader,
     },
-    renderer::Renderer,
+    renderer::WorldRenderer,
 };
 
 pub struct InitializationGraphicContext {
-    renderer: Renderer,
+    world_renderer: WorldRenderer,
     params: GraphicContextParams,
     shader_event_receiver: Receiver<ResourceEvent>,
-    format: TextureFormat,
-    vertex_buffer: Mutex<Arc<Buffer>>,
+    pipeline_cache: PipelineCache,
 }
 
 impl InitializationGraphicContext {
@@ -30,9 +23,8 @@ impl InitializationGraphicContext {
         device: Arc<Device>,
         params: GraphicContextParams,
         shader_event_receiver: Receiver<ResourceEvent>,
-        format: TextureFormat,
     ) -> Self {
-        let renderer = Renderer::new(device.clone());
+        let world_renderer = WorldRenderer::new(device.clone());
 
         let vertex_buffers = vec![
             Vertex {
@@ -58,11 +50,10 @@ impl InitializationGraphicContext {
         let vertex_buffer = Mutex::new(Arc::new(buffer));
 
         InitializationGraphicContext {
-            renderer,
+            world_renderer,
             params,
             shader_event_receiver,
-            format,
-            vertex_buffer,
+            pipeline_cache: PipelineCache::new(device),
         }
     }
 }
@@ -82,92 +73,19 @@ impl InitializationGraphicContext {
             | ResourceEvent::Added(resource) = event
             {
                 if let Some(shader) = resource.try_cast::<Shader>() {
-                    self.renderer.pipeline_cache_mut().remove(&shader);
-                    self.renderer.pipeline_cache_mut().set_shader(&shader);
+                    self.pipeline_cache.remove(&shader);
+                    self.pipeline_cache.set_shader(&shader);
                 }
             }
         }
 
-        self.renderer.pipeline_cache_mut().update(dt);
+        self.pipeline_cache.update(dt);
     }
 
     fn render(&mut self, dt: f32) {
-        let vertex_buffer_layout = VertexBufferLayout {
-            array_stride: core::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: vec![
-                wgpu::VertexAttribute {
-                    offset: 0,
-                    shader_location: 0,
-                    format: wgpu::VertexFormat::Float32x3,
-                },
-                wgpu::VertexAttribute {
-                    offset: core::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
-                    shader_location: 1,
-                    format: wgpu::VertexFormat::Float32x3,
-                },
-            ],
-        };
-
-        let test_desc = RenderPipelineDescriptor {
-            label: Some("test".into()),
-            vertex: VertexState {
-                shader: get_test().clone(),
-                shader_defs: vec![],
-                entry_point: "vs_main".into(),
-                buffers: vec![vertex_buffer_layout],
-            },
-            fragment: Some(FragmentState {
-                shader: get_test().clone(),
-                shader_defs: vec![],
-                entry_point: "fs_main".into(),
-                targets: vec![Some(ColorTargetState {
-                    format: self.format.add_srgb_suffix(),
-                    blend: Some(wgpu::BlendState {
-                        color: wgpu::BlendComponent::REPLACE,
-                        alpha: wgpu::BlendComponent::REPLACE,
-                    }),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            layout: vec![],
-            push_constant_ranges: vec![],
-        };
-
-        let vertex_buffer = self.vertex_buffer.lock().clone();
-
-        self.renderer.prepare_frame(|fg| {
-            let mut builder = fg.create_pass_node_builder(0, "final");
-
-            let pipeline_handle = builder.register_render_pipeline(&test_desc);
-
-            let new_swap_chain = builder.create("swap_chain", SwapChainInfo);
-
-            let vertex_buffer_desc = vertex_buffer.get_desc().clone();
-
-            let vertex_buffer_handle =
-                builder.import("vertex_buffer", vertex_buffer, vertex_buffer_desc);
-
-            let swap_chain_read_ref = builder.read(new_swap_chain);
-
-            let vertex_buffe_read_ref = builder.read(vertex_buffer_handle);
-
-            builder.add_attachment(ColorAttachment::SwapChain(swap_chain_read_ref));
-
-            builder.render(move |context| {
-                context.set_render_pipeline(&pipeline_handle);
-
-                context.set_vertex_buffer(0, vertex_buffe_read_ref);
-
-                context.draw(0..3, 0..1);
-
-                Ok(())
-            });
-        });
-
         self.update_pipeline_cache(dt);
 
-        self.renderer.draw_frame();
+        self.world_renderer.render(&mut self.pipeline_cache);
     }
 }
 
@@ -197,7 +115,6 @@ impl GraphicContext {
             device,
             self.get_params().clone(),
             shader_event_receiver,
-            format,
         )));
     }
 

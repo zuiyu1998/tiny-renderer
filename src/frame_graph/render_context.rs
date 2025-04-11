@@ -1,31 +1,28 @@
-use std::ops::Range;
+use std::{ops::Range, sync::Arc};
 
 use crate::{
     error::{RendererError, Result},
-    frame_graph::{CompiledPipelines, Resource, ResourceBoard},
+    frame_graph::Resource,
     gfx_base::{
         buffer::Buffer,
         command_buffer::CommandBuffer,
         device::Device,
-        handle::TypeHandle,
-        pipeline::{PipelineCache, RenderPipeline},
+        pipeline::{CachedRenderPipelineId, PipelineCache},
     },
 };
 
-use super::{GpuRead, GpuWrite, ResourceNodeRef, ResourceTable};
+use super::{GpuRead, ResourceNodeRef, ResourceTable, TransientResourceCache};
 
 pub type DynRenderFn = dyn FnOnce(&mut RenderContext) -> Result<(), RendererError>;
 
 ///资源上下文
 pub struct RenderContext<'a> {
     ///资源表
-    resource_table: &'a mut ResourceTable,
-    device: &'a Device,
-    ///只读资源的全局索引
-    resource_board: &'a ResourceBoard,
-    pipeline_cache: &'a PipelineCache,
-    pipelines: &'a CompiledPipelines,
+    pub resource_table: ResourceTable,
+    pub device: &'a Arc<Device>,
+    pub pipeline_cache: &'a PipelineCache,
     cb: Option<CommandBuffer>,
+    pub transient_resource_cache: &'a mut TransientResourceCache,
 }
 
 impl<'a> RenderContext<'a> {
@@ -37,11 +34,10 @@ impl<'a> RenderContext<'a> {
         self.cb.take()
     }
 
-    pub fn set_render_pipeline(&mut self, handle: &TypeHandle<RenderPipeline>) {
-        let handle = self.pipelines.render_pipeline_ids[handle.index()];
-        if let Some(render_pipeline) = self.pipeline_cache.get_render_pipeline(&handle) {
+    pub fn set_render_pipeline(&mut self, id: &CachedRenderPipelineId) {
+        if let Some(pipeline) = self.pipeline_cache.get_render_pipeline(id) {
             if let Some(cb) = self.cb.as_mut() {
-                cb.set_render_pipeline(render_pipeline);
+                cb.set_render_pipeline(pipeline);
             }
         }
     }
@@ -65,45 +61,22 @@ impl<'a> RenderContext<'a> {
     }
 
     pub fn new(
-        resource_table: &'a mut ResourceTable,
-        device: &'a Device,
-        resource_board: &'a ResourceBoard,
+        device: &'a Arc<Device>,
         pipeline_cache: &'a PipelineCache,
-        pipelines: &'a CompiledPipelines,
+        transient_resource_cache: &'a mut TransientResourceCache,
     ) -> Self {
         Self {
-            resource_table,
+            resource_table: Default::default(),
             device,
-            resource_board,
             pipeline_cache,
-            pipelines,
             cb: None,
-        }
-    }
-
-    pub fn get_resource_from_board<ResourceType: Resource>(
-        &self,
-        name: &str,
-    ) -> Option<&ResourceType> {
-        if let Some(handle) = self.resource_board.get(name) {
-            let handle: ResourceNodeRef<ResourceType, GpuRead> =
-                ResourceNodeRef::new(handle.clone().into());
-            self.get_resource(&handle)
-        } else {
-            None
+            transient_resource_cache,
         }
     }
 
     pub fn get_resource<ResourceType: Resource>(
         &self,
         handle: &ResourceNodeRef<ResourceType, GpuRead>,
-    ) -> Option<&ResourceType> {
-        self.resource_table.get_resource(&handle.resource_handle())
-    }
-
-    pub fn get_resource_mut<ResourceType: Resource>(
-        &self,
-        handle: &ResourceNodeRef<ResourceType, GpuWrite>,
     ) -> Option<&ResourceType> {
         self.resource_table.get_resource(&handle.resource_handle())
     }

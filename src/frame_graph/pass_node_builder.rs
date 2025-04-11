@@ -2,16 +2,12 @@ use std::sync::Arc;
 
 use crate::{
     error::RendererError,
-    gfx_base::{
-        color_attachment::ColorAttachment,
-        handle::TypeHandle,
-        pipeline::{RenderPipeline, RenderPipelineDescriptor},
-    },
+    gfx_base::{color_attachment::ColorAttachment, handle::TypeHandle},
 };
 
 use super::{
-    Resource, ResourceDescriptor, FrameGraph, GpuRead, GpuWrite, ImportToFrameGraph, PassNode,
-    RenderContext, ResourceNodeHandle, ResourceNodeRef, TypeEquals,
+    FrameGraph, GpuRead, GpuWrite, ImportToFrameGraph, PassNode, RenderContext, Resource,
+    ResourceDescriptor, ResourceNodeHandle, ResourceNodeRef, TypeEquals,
 };
 
 pub struct PassNodeBuilder<'a> {
@@ -26,13 +22,6 @@ impl Drop for PassNodeBuilder<'_> {
 }
 
 impl<'a> PassNodeBuilder<'a> {
-    pub fn register_render_pipeline(
-        &mut self,
-        desc: &RenderPipelineDescriptor,
-    ) -> TypeHandle<RenderPipeline> {
-        self.graph.register_render_pipeline(desc.clone())
-    }
-
     pub fn add_attachment(&mut self, color_attachment: ColorAttachment) {
         self.pass_node
             .as_mut()
@@ -84,7 +73,10 @@ impl<'a> PassNodeBuilder<'a> {
         desc: DescriptorType,
     ) -> ResourceNodeHandle<DescriptorType::Resource>
     where
-    DescriptorType: ResourceDescriptor + TypeEquals<Other = <<DescriptorType as ResourceDescriptor>::Resource as Resource>::Descriptor>,
+        DescriptorType: ResourceDescriptor
+            + TypeEquals<
+                Other = <<DescriptorType as ResourceDescriptor>::Resource as Resource>::Descriptor,
+            >,
     {
         self.graph.create(name, desc)
     }
