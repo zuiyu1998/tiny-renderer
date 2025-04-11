@@ -239,6 +239,10 @@ impl PipelineCache {
     }
 
     pub fn get_render_pipeline(&self, id: &CachedRenderPipelineId) -> Option<&RenderPipeline> {
+        if id.0 >= self.pipelines.len() {
+            return None;
+        }
+
         if let CachedPipelineState::Ok(Pipeline::RenderPipeline(pipeline)) =
             &self.pipelines[id.0].state
         {

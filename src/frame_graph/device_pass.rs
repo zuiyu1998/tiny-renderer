@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::gfx_base::{device::Device, handle::TypeHandle, render_pass::RenderPassDescriptor};
+use crate::{
+    error::RendererError,
+    gfx_base::{device::Device, handle::TypeHandle, render_pass::RenderPassDescriptor},
+};
 
 use super::{
     DynRenderFn, FrameGraph, PassNode, RenderContext, ResourceTable, TransientResourceCache,
@@ -41,6 +44,7 @@ impl DevicePass {
             render_fn,
             resource_request_array,
             resource_release_array,
+            name: pass_node.name.clone(),
         };
 
         self.logic_pass = logic_pass;
@@ -50,7 +54,7 @@ impl DevicePass {
             .append(&mut pass_node.color_attachments);
     }
 
-    pub fn begin(&self, render_context: &mut RenderContext) {
+    pub fn begin(&self, render_context: &mut RenderContext) -> Result<(), RendererError> {
         self.logic_pass.request_resources(
             render_context.device,
             render_context.transient_resource_cache,
@@ -63,10 +67,12 @@ impl DevicePass {
             .device()
             .create_render_pass(self.render_pass_desc.clone());
 
-        render_pass.do_init(render_context);
+        render_pass.do_init(render_context)?;
 
         command_buffer.begin_render_pass(render_context.device(), render_pass);
         render_context.set_cb(command_buffer);
+
+        Ok(())
     }
 
     pub fn end(&self, render_context: &mut RenderContext) {
@@ -81,16 +87,16 @@ impl DevicePass {
         );
     }
 
-    pub fn execute(&mut self, render_context: &mut RenderContext) {
-        self.begin(render_context);
+    pub fn execute(&mut self, render_context: &mut RenderContext) -> Result<(), RendererError> {
+        self.begin(render_context)?;
 
         if let Some(render_fn) = self.logic_pass.render_fn.take() {
-            if let Err(e) = render_fn(render_context) {
-                println!("render_fn error: {}", e)
-            }
+            render_fn(render_context)?;
         }
 
         self.end(render_context);
+
+        Ok(())
     }
 }
 
@@ -99,6 +105,7 @@ pub struct LogicPass {
     pub render_fn: Option<Box<DynRenderFn>>,
     pub resource_release_array: Vec<TypeHandle<VirtualResource>>,
     pub resource_request_array: Vec<VirtualResource>,
+    pub name: String,
 }
 
 impl LogicPass {

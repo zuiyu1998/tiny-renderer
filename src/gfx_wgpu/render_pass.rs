@@ -1,8 +1,10 @@
 use crate::{
+    error::RendererError,
     frame_graph::RenderContext,
     gfx_base::{
+        ColorAttachmentInfo,
         render_pass::{RenderPassDescriptor, RenderPassTrait},
-        texture_view::TextureView, ColorAttachmentInfo,
+        texture_view::TextureView,
     },
 };
 
@@ -21,7 +23,7 @@ impl WgpuRenderPass {
 }
 
 impl RenderPassTrait for WgpuRenderPass {
-    fn do_init(&mut self, render_context: &RenderContext) {
+    fn do_init(&mut self, render_context: &RenderContext) -> Result<(), RendererError> {
         let mut texture_views = vec![];
 
         for color_attachment in self.desc.color_attachments.iter() {
@@ -29,11 +31,17 @@ impl RenderPassTrait for WgpuRenderPass {
                 ColorAttachmentInfo::SwapChain(handle) => {
                     if let Some(resource) = render_context.get_resource(&handle) {
                         texture_views.push(resource.clone());
+                    } else {
+                        return Err(RendererError::ResourceNotFound {
+                            resource_index: handle.resource_handle().index(),
+                        });
                     }
                 }
             }
         }
 
         self.texture_views = Some(texture_views);
+
+        Ok(())
     }
 }

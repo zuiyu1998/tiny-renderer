@@ -33,7 +33,9 @@ impl FrameGraph {
         let device_passes = self.device_passes.take().unwrap();
 
         for mut device_pass in device_passes {
-            device_pass.execute(render_context);
+            if let Err(e) = device_pass.execute(render_context) {
+                println!("{}", e);
+            }
         }
 
         self.reset();
@@ -48,7 +50,7 @@ impl FrameGraph {
                 resource.info.update_lifetime(pass_node.handle);
             }
 
-            //更新渲染节点吸入的资源节点所指向资源的生命周期
+            //更新渲染节点写入的资源节点所指向资源的生命周期
             for resource_node_handle in pass_node.writes.iter() {
                 let resource_node = &self.resource_nodes[resource_node_handle.index()];
                 let resource = &mut self.resources[resource_node.resource_handle.index()];
@@ -78,6 +80,10 @@ impl FrameGraph {
     fn sort(&mut self) {
         self.pass_nodes
             .sort_by(|a, b| a.insert_point.cmp(&b.insert_point));
+
+        for index in 0..self.pass_nodes.len() {
+            self.pass_nodes[index].handle = TypeHandle::new(index);
+        }
     }
 
     fn generate_device_passes(&mut self) {
@@ -88,7 +94,7 @@ impl FrameGraph {
         let mut device_passes = vec![];
 
         for index in 0..self.pass_nodes.len() {
-            let pass_node_handle = self.pass_nodes[index].handle;
+            let pass_node_handle = TypeHandle::new(index);
 
             let mut device_pass = DevicePass::default();
 
@@ -176,6 +182,13 @@ impl FrameGraph {
     where
         ResourceType: ImportToFrameGraph,
     {
+        if let Some(raw_handle) = self.resource_board.get(name) {
+            return ResourceNodeHandle::new(
+                raw_handle.resource_node_handle(),
+                raw_handle.resource_handle(),
+            );
+        }
+
         let imported_resource = ImportToFrameGraph::import(resource);
         let resource_handle = TypeHandle::new(self.resources.len());
         let resource: VirtualResource = VirtualResource::new_imported::<ResourceType>(
