@@ -2,13 +2,13 @@ use std::ops::Range;
 
 use crate::{
     gfx_base::{
-        command_buffer::CommandBufferTrait, device::Device, pipeline::RenderPipeline,
-        render_pass::RenderPass,
+        BindGroup, Buffer, command_buffer::CommandBufferTrait, device::Device,
+        pipeline::RenderPipeline, render_pass::RenderPass,
     },
     gfx_wgpu::{WgpuDevice, WgpuRenderPipeline, WgpuTextureView, render_pass::WgpuRenderPass},
 };
 
-use super::WgpuBuffer;
+use super::{WgpuBindGroup, WgpuBuffer};
 
 #[derive(Debug, Default)]
 pub struct WgpuCommandBuffer {
@@ -85,11 +85,33 @@ impl CommandBufferTrait for WgpuCommandBuffer {
         }
     }
 
-    fn set_vertex_buffer(&mut self, slot: u32, buffer: &crate::gfx_base::buffer::Buffer) {
+    fn set_vertex_buffer(&mut self, slot: u32, buffer: &Buffer) {
         let buffer = buffer.downcast_ref::<WgpuBuffer>().unwrap();
 
         if let Some(render_pass) = self.render_pass.as_mut() {
             render_pass.set_vertex_buffer(slot, buffer.buffer.slice(0..));
+        }
+    }
+
+    fn set_bind_group(&mut self, index: u32, bind_group: &BindGroup) {
+        let bind_group = bind_group.downcast_ref::<WgpuBindGroup>().unwrap();
+
+        if let Some(render_pass) = self.render_pass.as_mut() {
+            render_pass.set_bind_group(index, Some(&bind_group.0), &[]);
+        }
+    }
+
+    fn set_index_buffer(&mut self, buffer: &Buffer, index_format: wgpu::IndexFormat) {
+        let buffer = buffer.downcast_ref::<WgpuBuffer>().unwrap();
+
+        if let Some(render_pass) = self.render_pass.as_mut() {
+            render_pass.set_index_buffer(buffer.buffer.slice(0..), index_format);
+        }
+    }
+
+    fn draw_indexed(&mut self, indices: Range<u32>, base_vertex: i32, instances: Range<u32>) {
+        if let Some(render_pass) = self.render_pass.as_mut() {
+            render_pass.draw_indexed(indices, base_vertex, instances);
         }
     }
 }

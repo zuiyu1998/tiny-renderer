@@ -39,7 +39,7 @@ impl Default for Camera {
 impl Windows {
     pub fn get_render_camera(&self, camera: &Camera) -> Option<RenderCamera> {
         if let Some(window_data) = match &camera.target {
-            CameraTarget::Window(window_id) => self.get_window(window_id.clone()),
+            CameraTarget::Window(window_id) => self.get_window(*window_id),
         } {
             let texture_view = window_data.swap_chain_texture_view.clone().unwrap();
 
@@ -48,7 +48,7 @@ impl Windows {
             });
         }
 
-        return None;
+        None
     }
 
     pub fn get_window(&self, window_id: Option<WindowId>) -> Option<&WindowData> {
@@ -66,7 +66,7 @@ impl Windows {
     pub fn new(data: WindowData) -> Self {
         let primary = data.window.id();
         let mut windows = HashMap::default();
-        windows.insert(primary.clone(), data);
+        windows.insert(primary, data);
 
         Windows { primary, windows }
     }

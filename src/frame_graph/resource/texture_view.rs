@@ -36,7 +36,7 @@ impl Resource for TextureView {
             }
         }
     }
-    
+
     fn get_desc(&self) -> &Self::Descriptor {
         self.get_desc()
     }

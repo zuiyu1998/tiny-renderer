@@ -12,11 +12,15 @@ downcast-rs = "2.0.1"
 naga_oil = { version = "0.17", default-features = false, features = [
     "test_shader",
 ] }
-
-bytemuck = { version = "1.19", features = [ "derive" ] }
+bytemuck = { version = "1.19", features = ["derive"] }
 
 fyrox-resource = "0.36.2"
 fyrox-core = "0.36.2"
+
+[dependencies.image]
+version = "0.24"
+default-features = false
+features = ["png", "jpeg"]
 
 [dev-dependencies]
 winit = "0.30"

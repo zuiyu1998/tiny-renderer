@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     error::RendererError,
-    gfx_base::{color_attachment::ColorAttachmentInfo, handle::TypeHandle},
+    gfx_base::{BindGroupRef, color_attachment::ColorAttachmentInfo, handle::TypeHandle},
 };
 
 use super::{
@@ -22,6 +22,10 @@ impl Drop for PassNodeBuilder<'_> {
 }
 
 impl<'a> PassNodeBuilder<'a> {
+    pub fn add_bind_group(&mut self, bind_group: BindGroupRef) {
+        self.pass_node.as_mut().unwrap().add_bind_group(bind_group);
+    }
+
     pub fn add_attachment_info(&mut self, color_attachment: ColorAttachmentInfo) {
         self.pass_node
             .as_mut()
@@ -49,7 +53,7 @@ impl<'a> PassNodeBuilder<'a> {
     }
 
     fn build(&mut self) {
-        assert_eq!(self.pass_node.as_ref().unwrap().render_fn.is_some(), true);
+        assert!(self.pass_node.as_ref().unwrap().render_fn.is_some());
 
         let pass_node = self.pass_node.take().unwrap();
         self.graph.pass_nodes.push(pass_node);

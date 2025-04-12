@@ -1,11 +1,9 @@
 pub mod meshes;
-pub mod renderer;
 pub mod schedule;
 
 pub use meshes::*;
 pub use schedule::*;
 
-use renderer::Renderer;
 use std::sync::Arc;
 
 use crate::gfx_base::device::Device;
@@ -13,6 +11,10 @@ use crate::gfx_base::device::Device;
 use crate::frame_graph::{FrameGraph, RenderContext, TransientResourceCache};
 use crate::gfx_base::pipeline::PipelineCache;
 use crate::gfx_base::texture_view::TextureView;
+
+pub trait Renderer {
+    fn prepare(&self, context: &mut FrameGraphContext);
+}
 
 pub struct FrameGraphContext<'a> {
     pub device: &'a Device,
@@ -65,7 +67,7 @@ impl WorldRenderer {
                 device: &self.device,
                 camera,
                 frame_graph: &mut frame_graph,
-                pipeline_cache: &pipeline_cache,
+                pipeline_cache,
             };
 
             mesh_material.prepare(&mut context);

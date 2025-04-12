@@ -1,4 +1,4 @@
-use crate::gfx_base::{color_attachment::ColorAttachmentInfo, handle::TypeHandle};
+use crate::gfx_base::{BindGroupRef, ColorAttachmentInfo, handle::TypeHandle};
 
 use super::{
     DynRenderFn, FrameGraph, GpuRead, GpuWrite, ResourceNode, ResourceNodeHandle, ResourceNodeRef,
@@ -15,9 +15,14 @@ pub struct PassNode {
     pub resource_request_array: Vec<TypeHandle<VirtualResource>>,
     pub resource_release_array: Vec<TypeHandle<VirtualResource>>,
     pub color_attachments: Vec<ColorAttachmentInfo>,
+    pub bind_groups: Vec<BindGroupRef>,
 }
 
 impl PassNode {
+    pub fn add_bind_group(&mut self, bind_group: BindGroupRef) {
+        self.bind_groups.push(bind_group);
+    }
+
     pub fn add_attachment(&mut self, color_attachment: ColorAttachmentInfo) {
         self.color_attachments.push(color_attachment);
     }
@@ -94,6 +99,7 @@ impl PassNode {
             resource_request_array: vec![],
             resource_release_array: vec![],
             color_attachments: vec![],
+            bind_groups: vec![],
         }
     }
 }

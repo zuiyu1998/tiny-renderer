@@ -5,9 +5,9 @@ use crate::{define_atomic_id, define_gfx_frame_graph_type};
 
 define_atomic_id!(TextureViewId);
 
-pub trait TextureViewTrait: 'static + Debug + Clone {}
+pub trait TextureViewTrait: 'static + Debug + Clone + Send + Sync {}
 
-pub trait ErasedTextureViewTrait: 'static + Downcast + Debug {
+pub trait ErasedTextureViewTrait: 'static + Downcast + Debug + Send + Sync {
     fn clone_value(&self) -> Box<dyn ErasedTextureViewTrait>;
 }
 
@@ -28,9 +28,9 @@ define_gfx_frame_graph_type!(
 impl Clone for TextureView {
     fn clone(&self) -> Self {
         Self {
-            id: self.id.clone(),
+            id: self.id,
             value: self.value.clone_value(),
-            desc: self.desc.clone()
+            desc: self.desc.clone(),
         }
     }
 }

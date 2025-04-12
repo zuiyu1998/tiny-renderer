@@ -1,6 +1,7 @@
-use std::fmt::Debug;
+use std::{borrow::Cow, fmt::Debug};
 
 use downcast_rs::Downcast;
+use wgpu::BindGroupLayoutEntry;
 
 use crate::{define_atomic_id, define_gfx_type};
 
@@ -41,6 +42,10 @@ impl Clone for BindGroupLayout {
     }
 }
 
+pub struct BindGroupLayoutInfo {
+    pub label: Option<Cow<'static, str>>,
+    pub entries: Vec<BindGroupLayoutEntry>,
+}
 
 impl BindGroupLayout {
     pub fn id(&self) -> BindGroupLayoutId {

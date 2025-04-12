@@ -2,6 +2,8 @@ use wgpu::util::DeviceExt;
 
 use crate::{
     gfx_base::{
+        BindGroup, BindGroupInfo, BindGroupLayout, BindGroupLayoutInfo, BindingResource, Sample,
+        SampleInfo, Texture, TextureInfo,
         buffer::{Buffer, BufferInfo, BufferInitInfo},
         command_buffer::CommandBuffer,
         device::DeviceTrait,
@@ -10,12 +12,12 @@ use crate::{
         render_pass::{RenderPass, RenderPassDescriptor},
         shader_module::{ShaderModule, ShaderModuleDescriptor},
     },
-    gfx_wgpu::{WgpuBindGroupLayout, WgpuBuffer},
+    gfx_wgpu::{WgpuBindGroup, WgpuBindGroupLayout, WgpuBuffer},
 };
 
 use super::{
-    WgpuCommandBuffer, WgpuPipelineLayout, WgpuRenderPipeline, WgpuShaderModule,
-    render_pass::WgpuRenderPass,
+    WgpuCommandBuffer, WgpuPipelineLayout, WgpuRenderPipeline, WgpuSample, WgpuShaderModule,
+    WgpuTextureView, render_pass::WgpuRenderPass, texture::WgpuTexture,
 };
 
 #[derive(Debug)]
@@ -198,5 +200,86 @@ impl DeviceTrait for WgpuDevice {
                 mapped_at_creation: true,
             },
         )
+    }
+
+    fn create_texture(&self, desc: TextureInfo) -> Texture {
+        let texture = self.device.create_texture(&wgpu::TextureDescriptor {
+            label: desc.label.as_deref(),
+            size: desc.size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: desc.dimension,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: desc.usage,
+            view_formats: &[],
+        });
+
+        Texture::new(
+            WgpuTexture {
+                texture,
+                queue: self.queue.clone(),
+                device: self.device.clone(),
+            },
+            desc,
+        )
+    }
+
+    fn create_bind_group_layout(&self, desc: BindGroupLayoutInfo) -> BindGroupLayout {
+        let bind_group_layout =
+            self.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: desc.label.as_deref(),
+                    entries: &desc.entries,
+                });
+        BindGroupLayout::new(WgpuBindGroupLayout(bind_group_layout))
+    }
+
+    fn create_bind_group(&self, desc: BindGroupInfo) -> BindGroup {
+        let layout = desc.layout.downcast_ref::<WgpuBindGroupLayout>().unwrap();
+
+        let entries = desc
+            .entries
+            .iter()
+            .map(|entry| wgpu::BindGroupEntry {
+                binding: entry.binding,
+                resource: get_binding_resource(&entry.resource),
+            })
+            .collect::<Vec<_>>();
+
+        let wgpu_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: desc.label.as_deref(),
+            layout: &layout.0,
+            entries: &entries,
+        });
+
+        BindGroup::new(WgpuBindGroup(wgpu_bind_group))
+    }
+
+    fn create_sampler(&self, _desc: SampleInfo) -> Sample {
+        let sample = self.device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+
+        Sample::new(WgpuSample(sample))
+    }
+}
+
+fn get_binding_resource(source: &BindingResource) -> wgpu::BindingResource {
+    match source {
+        BindingResource::TextureView(res) => {
+            let res = res.downcast_ref::<WgpuTextureView>().unwrap();
+            wgpu::BindingResource::TextureView(&res.0)
+        }
+
+        BindingResource::Sampler(res) => {
+            let res = res.downcast_ref::<WgpuSample>().unwrap();
+            wgpu::BindingResource::Sampler(&res.0)
+        }
     }
 }

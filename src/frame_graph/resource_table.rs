@@ -19,7 +19,7 @@ impl ResourceTable {
         handle: &TypeHandle<VirtualResource>,
     ) -> Option<&ResourceType> {
         self.resources
-            .get(&handle)
+            .get(handle)
             .map(|any| ResourceType::borrow_resource(any))
     }
 
@@ -29,7 +29,7 @@ impl ResourceTable {
         device: &Device,
         transient_resource_cache: &mut TransientResourceCache,
     ) {
-        let handle = resource.info.handle.clone();
+        let handle = resource.info.handle;
         let resource = match &resource.state {
             ResourceState::Imported(state) => match &state.resource {
                 ImportedVirtualResource::Texture(resource) => {
@@ -56,10 +56,22 @@ impl ResourceTable {
     pub fn release_resource(
         &mut self,
         handle: &TypeHandle<VirtualResource>,
-        _transient_resource_cache: &mut TransientResourceCache,
+        transient_resource_cache: &mut TransientResourceCache,
     ) {
         if let Some(resource) = self.resources.remove(handle) {
             match resource {
+                AnyResource::OwnedBuffer(buffer) => {
+                    transient_resource_cache.insert_resource(
+                        buffer.get_desc().clone().into(),
+                        AnyResource::OwnedBuffer(buffer),
+                    );
+                }
+                AnyResource::OwnedTexture(texture) => {
+                    transient_resource_cache.insert_resource(
+                        texture.get_desc().clone().into(),
+                        AnyResource::OwnedTexture(texture),
+                    );
+                }
                 _ => {}
             }
         }

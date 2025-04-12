@@ -1,7 +1,7 @@
 use crate::gfx_base::bind_group_layout::BindGroupLayoutTrait;
 
 #[derive(Debug, Clone)]
-pub struct WgpuBindGroupLayout(wgpu::BindGroupLayout);
+pub struct WgpuBindGroupLayout(pub wgpu::BindGroupLayout);
 
 impl WgpuBindGroupLayout {
     pub fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {

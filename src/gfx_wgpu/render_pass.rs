@@ -29,7 +29,7 @@ impl RenderPassTrait for WgpuRenderPass {
         for color_attachment in self.desc.color_attachments.iter() {
             match color_attachment {
                 ColorAttachmentInfo::SwapChain(handle) => {
-                    if let Some(resource) = render_context.get_resource(&handle) {
+                    if let Some(resource) = render_context.get_resource(handle) {
                         texture_views.push(resource.clone());
                     } else {
                         return Err(RendererError::ResourceNotFound {

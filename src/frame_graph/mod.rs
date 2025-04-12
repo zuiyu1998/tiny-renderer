@@ -18,12 +18,3 @@ pub use resource_board::*;
 pub use resource_node::*;
 pub use resource_table::*;
 pub use transient_resource_cache::*;
-
-mod test {
-    #[test]
-    fn test() {
-        let a = 5;
-
-        assert_eq!(a, 5)
-    }
-}

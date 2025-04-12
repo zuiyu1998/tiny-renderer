@@ -6,19 +6,13 @@ use std::{borrow::Cow, fmt::Debug};
 
 define_atomic_id!(BufferId);
 
-pub trait BufferTrait: 'static + Debug {}
+pub trait BufferTrait: 'static + Debug + Sync + Send {}
 
-pub trait ErasedBufferTrait: 'static + Downcast + Debug {}
+pub trait ErasedBufferTrait: 'static + Downcast + Debug + Sync + Send {}
 
 impl<T: BufferTrait> ErasedBufferTrait for T {}
 
-define_gfx_frame_graph_type!(
-    Buffer,
-    BufferId,
-    BufferTrait,
-    ErasedBufferTrait,
-    BufferInfo
-);
+define_gfx_frame_graph_type!(Buffer, BufferId, BufferTrait, ErasedBufferTrait, BufferInfo);
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct BufferInfo {

@@ -5,10 +5,10 @@ mod texture_view;
 use std::{hash::Hash, sync::Arc};
 
 use crate::gfx_base::{
+    Texture, TextureInfo,
     buffer::{Buffer, BufferInfo},
     handle::TypeHandle,
     texture_view::{TextureView, TextureViewInfo},
-    Texture, TextureInfo
 };
 
 use super::PassNode;

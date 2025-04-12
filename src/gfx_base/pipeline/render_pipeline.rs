@@ -10,7 +10,11 @@ pub trait RenderPipelineTrait: 'static + Debug + Sync + Send {}
 
 pub trait ErasedRenderPipelineTrait: 'static + Sync + Send + Debug + Downcast {}
 
-
 impl<T: RenderPipelineTrait> ErasedRenderPipelineTrait for T {}
 
-define_gfx_type!(RenderPipeline, RenderPipelineId, RenderPipelineTrait, ErasedRenderPipelineTrait);
+define_gfx_type!(
+    RenderPipeline,
+    RenderPipelineId,
+    RenderPipelineTrait,
+    ErasedRenderPipelineTrait
+);

@@ -4,7 +4,7 @@ use downcast_rs::{Downcast, impl_downcast};
 
 use crate::gfx_base::{ColorAttachmentInfo, device::Device, pipeline::PipelineCache};
 
-use super::{FrameGraphContext, renderer::Renderer};
+use super::{FrameGraphContext, Renderer};
 
 pub trait RenderScheduleTrait: 'static + Downcast + Sync + Send {
     fn name() -> &'static str;
@@ -55,11 +55,10 @@ impl Renderer for RenderSchedules {
 impl RenderSchedules {
     pub fn new(pipeline_cache: &mut PipelineCache) -> Self {
         let mut schedules = RenderSchedules::empty();
-        
+
         schedules.add_schedule(CameraDriverSchedule::from_pipeline_cache(pipeline_cache));
-        
+
         schedules
-        
     }
 
     pub fn empty() -> Self {

@@ -10,18 +10,10 @@ use super::{
     VirtualResource,
 };
 
+#[derive(Default)]
 pub struct DevicePass {
     logic_pass: LogicPass,
     render_pass_desc: RenderPassDescriptor,
-}
-
-impl Default for DevicePass {
-    fn default() -> Self {
-        DevicePass {
-            logic_pass: Default::default(),
-            render_pass_desc: RenderPassDescriptor::default(),
-        }
-    }
 }
 
 impl DevicePass {
@@ -116,7 +108,7 @@ impl LogicPass {
         resource_table: &mut ResourceTable,
     ) {
         for resource in self.resource_request_array.iter() {
-            resource_table.request_resource(resource, &device, transient_resource_cache);
+            resource_table.request_resource(resource, device, transient_resource_cache);
         }
     }
 
