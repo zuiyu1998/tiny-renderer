@@ -281,5 +281,10 @@ fn get_binding_resource(source: &BindingResource) -> wgpu::BindingResource {
             let res = res.downcast_ref::<WgpuSample>().unwrap();
             wgpu::BindingResource::Sampler(&res.0)
         }
+
+        BindingResource::Buffer(res) => {
+            let res = res.downcast_ref::<WgpuBuffer>().unwrap();
+            res.buffer.as_entire_binding()
+        }
     }
 }

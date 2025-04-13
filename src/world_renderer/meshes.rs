@@ -64,15 +64,20 @@ pub struct MeshMaterial {
     pub image: Image,
     pub id: Option<CachedRenderPipelineId>,
     pub texture_bind_group_layout: Option<BindGroupLayout>,
+    pub camera_bind_group_layout: Option<BindGroupLayout>,
 }
 
 impl Renderer for MeshMaterial {
     fn prepare(&self, context: &mut FrameGraphContext) {
-        if self.id.is_none() || self.texture_bind_group_layout.is_none() {
+        if self.id.is_none()
+            || self.texture_bind_group_layout.is_none()
+            || self.camera_bind_group_layout.is_none()
+        {
             return;
         }
         let pipeline_id = self.id.unwrap();
         let texture_bind_group_layout = self.texture_bind_group_layout.clone().unwrap();
+        let camera_bind_group_layout = self.camera_bind_group_layout.clone().unwrap();
 
         if context
             .pipeline_cache
@@ -106,6 +111,8 @@ impl Renderer for MeshMaterial {
 
         let texture = Arc::new(texture);
 
+        let camera_buffer = context.camera.get_camera_buffer(context.device);
+
         let mut builder = context.frame_graph.create_pass_node_builder(2, "vertex");
 
         let texture_handle = builder.import("texture", texture);
@@ -119,6 +126,9 @@ impl Renderer for MeshMaterial {
 
         let vertex_buffer_handle = builder.import("vertex_buffer", vertex_buffer);
         let vertex_buffer_read = builder.read(vertex_buffer_handle);
+
+        let camera_buffer_handle = builder.import("camera_buffer", camera_buffer);
+        let camera_buffer_read = builder.read(camera_buffer_handle);
 
         builder.add_attachment_info(ColorAttachmentInfo::SwapChain(swap_chain_read));
 
@@ -138,9 +148,20 @@ impl Renderer for MeshMaterial {
             index: 0,
         };
 
+        let bind_group_camera = BindGroupRef {
+            label: Some("camera_bind_group".into()),
+            layout: camera_bind_group_layout,
+            entries: vec![BindGroupEntryInfo {
+                binding: 0,
+                resource: BindingResourceInfo::Buffer(camera_buffer_read),
+            }],
+            index: 0,
+        };
+
         builder.render(move |render_context| {
             render_context.set_render_pipeline(&pipeline_id);
             render_context.set_bind_group(0, &bind_group);
+            render_context.set_bind_group(1, &bind_group_camera);
             render_context.set_vertex_buffer(0, vertex_buffer_read);
             render_context.set_index_buffer(index_buffer_read, wgpu::IndexFormat::Uint16);
             render_context.draw_indexed(0..num_indices, 0, 0..1);
@@ -183,6 +204,23 @@ impl MeshesRender for MeshMaterial {
                     ],
                 });
 
+        let camera_bind_group_layout =
+            pipeline_cache
+                .device
+                .create_bind_group_layout(BindGroupLayoutInfo {
+                    label: Some("camera_bind_group_layout".into()),
+                    entries: vec![wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX, // 1
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false, // 2
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    }],
+                });
+
         let vertex_buffer_layout = VertexBufferLayout {
             array_stride: core::mem::size_of::<Vertex>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
@@ -221,12 +259,16 @@ impl MeshesRender for MeshMaterial {
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
-            layout: vec![texture_bind_group_layout.clone()],
+            layout: vec![
+                texture_bind_group_layout.clone(),
+                camera_bind_group_layout.clone(),
+            ],
             push_constant_ranges: vec![],
         };
 
         self.id = Some(pipeline_cache.register_render_pipeline(test_desc));
         self.texture_bind_group_layout = Some(texture_bind_group_layout);
+        self.camera_bind_group_layout = Some(camera_bind_group_layout);
     }
 }
 
@@ -238,6 +280,7 @@ impl MeshMaterial {
             image: Image::new(),
             texture_bind_group_layout: None,
             indexes,
+            camera_bind_group_layout: None,
         }
     }
 }

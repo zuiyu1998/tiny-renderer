@@ -1,6 +1,6 @@
 use crate::gfx_base::buffer::BufferTrait;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WgpuBuffer {
     pub buffer: wgpu::Buffer,
 }

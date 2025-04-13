@@ -6,14 +6,115 @@ use tiny_renderer::{
     gfx_base::{TextureViewInfo, device::Device, texture_view::TextureView},
     gfx_wgpu::{WgpuDevice, WgpuTextureView},
     graphic_context::{GraphicContext, GraphicContextParams},
-    world_renderer::{RenderCamera, RenderTarget},
+    world_renderer::{CameraInfo, RenderCamera, RenderTarget},
 };
 use winit::{
     application::ApplicationHandler,
-    event::WindowEvent,
+    event::{ElementState, KeyEvent, WindowEvent},
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
+    keyboard::{Key, KeyCode, NamedKey, PhysicalKey},
     window::{Window, WindowId},
 };
+
+struct CameraController {
+    speed: f32,
+    is_up_pressed: bool,
+    is_down_pressed: bool,
+    is_forward_pressed: bool,
+    is_backward_pressed: bool,
+    is_left_pressed: bool,
+    is_right_pressed: bool,
+}
+
+impl CameraController {
+    fn new(speed: f32) -> Self {
+        Self {
+            speed,
+            is_forward_pressed: false,
+            is_backward_pressed: false,
+            is_left_pressed: false,
+            is_right_pressed: false,
+            is_up_pressed: false,
+            is_down_pressed: false,
+        }
+    }
+
+    fn process_events(&mut self, event: &WindowEvent) -> bool {
+        match event {
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        state,
+                        logical_key,
+                        physical_key,
+                        ..
+                    },
+                ..
+            } => {
+                let is_pressed = *state == ElementState::Pressed;
+                if let Key::Named(NamedKey::Space) = logical_key {
+                    self.is_up_pressed = is_pressed;
+                    return true;
+                }
+                match physical_key {
+                    PhysicalKey::Code(KeyCode::ShiftLeft) => {
+                        self.is_down_pressed = is_pressed;
+                        true
+                    }
+                    PhysicalKey::Code(KeyCode::KeyW) | PhysicalKey::Code(KeyCode::ArrowUp) => {
+                        self.is_forward_pressed = is_pressed;
+                        true
+                    }
+                    PhysicalKey::Code(KeyCode::KeyA) | PhysicalKey::Code(KeyCode::ArrowLeft) => {
+                        self.is_left_pressed = is_pressed;
+                        true
+                    }
+                    PhysicalKey::Code(KeyCode::KeyS) | PhysicalKey::Code(KeyCode::ArrowDown) => {
+                        self.is_backward_pressed = is_pressed;
+                        true
+                    }
+                    PhysicalKey::Code(KeyCode::KeyD) | PhysicalKey::Code(KeyCode::ArrowRight) => {
+                        self.is_right_pressed = is_pressed;
+                        true
+                    }
+                    _ => false,
+                }
+            }
+            _ => false,
+        }
+    }
+
+    fn update_camera(&self, camera: &mut Camera) {
+        let forward = camera.info.target - camera.info.eye;
+        let forward_norm = forward.normalize();
+        let forward_mag = forward.length();
+
+        // 防止摄像机离场景中心太近时出现问题
+        if self.is_forward_pressed && forward_mag > self.speed {
+            camera.info.eye += forward_norm * self.speed;
+        }
+        if self.is_backward_pressed {
+            camera.info.eye -= forward_norm * self.speed;
+        }
+
+        let right = forward_norm.cross(camera.info.up);
+
+        // 在按下前进或后退键时重做半径计算
+        let forward = camera.info.target - camera.info.eye;
+        let forward_mag = forward.length();
+
+        if self.is_right_pressed {
+            // 重新调整目标和眼睛之间的距离，以便其不发生变化。
+            // 因此，眼睛仍然位于目标和眼睛形成的圆圈上。
+            camera.info.eye =
+                camera.info.target - (forward + right * self.speed).normalize() * forward_mag;
+        }
+        if self.is_left_pressed {
+            camera.info.eye =
+                camera.info.target - (forward - right * self.speed).normalize() * forward_mag;
+        }
+    }
+}
 
 pub struct Windows {
     primary: WindowId,
@@ -24,15 +125,21 @@ pub enum CameraTarget {
     Window(Option<WindowId>),
 }
 
-pub struct Camera {
-    target: CameraTarget,
+impl Default for CameraTarget {
+    fn default() -> Self {
+        CameraTarget::Window(None)
+    }
 }
 
-impl Default for Camera {
-    fn default() -> Self {
-        Camera {
-            target: CameraTarget::Window(None),
-        }
+#[derive(Default)]
+pub struct Camera {
+    target: CameraTarget,
+    info: CameraInfo,
+}
+
+impl Camera {
+    pub fn set_camera_info(&mut self, width: f32, height: f32) {
+        self.info.aspect = width / height;
     }
 }
 
@@ -45,6 +152,7 @@ impl Windows {
 
             return Some(RenderCamera {
                 render_target: RenderTarget::Window(Arc::new(texture_view)),
+                info: camera.info.clone(),
             });
         }
 
@@ -149,6 +257,7 @@ struct State {
     graphic_context: GraphicContext,
     _resource_manager: ResourceManager,
     camera: Camera,
+    camera_controller: CameraController,
 }
 
 impl State {
@@ -202,12 +311,30 @@ impl State {
 
         graphic_context.initialization(device, shader_event_receiver);
 
+        let camera = Camera {
+            info: CameraInfo {
+                // 将摄像机向上移动 1 个单位，向后移动 2 个单位
+                // +z 朝向屏幕外
+                eye: (0.0, 1.0, 2.0).into(),
+                // 摄像机看向原点
+                target: (0.0, 0.0, 0.0).into(),
+                // 定义哪个方向朝上
+                up: glam::Vec3::Y,
+                aspect: size.width as f32 / size.height as f32,
+                fovy: 45.0,
+                znear: 0.1,
+                zfar: 100.0,
+            },
+            ..Default::default()
+        };
+
         State {
             windows,
             size,
             graphic_context,
             _resource_manager: resource_manager,
-            camera: Camera::default(),
+            camera,
+            camera_controller: CameraController::new(10.0),
         }
     }
 
@@ -248,6 +375,9 @@ impl ApplicationHandler for App {
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         let state = self.state.as_mut().unwrap();
+        state.camera_controller.process_events(&event);
+        state.camera_controller.update_camera(&mut state.camera);
+
         match event {
             WindowEvent::CloseRequested => {
                 println!("The close button was pressed; stopping");

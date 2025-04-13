@@ -8,7 +8,8 @@ use crate::{
 };
 
 use super::{
-    BindGroupLayout, Sample, SampleInfo, Texture, TextureView, TextureViewInfo, device::Device,
+    BindGroupLayout, Buffer, Sample, SampleInfo, Texture, TextureView, TextureViewInfo,
+    device::Device,
 };
 
 define_atomic_id!(BindGroupId);
@@ -52,6 +53,16 @@ impl BindGroupRef {
                         ),
                     });
                 }
+                BindingResourceInfo::Buffer(handle) => {
+                    let resource = resource_table
+                        .get_resource::<Buffer>(&handle.resource_handle())
+                        .unwrap();
+
+                    entries.push(BindGroupEntry {
+                        binding: entry.binding,
+                        resource: BindingResource::Buffer(resource.clone()),
+                    });
+                }
             }
         }
 
@@ -75,6 +86,7 @@ pub struct BindGroupEntryInfo {
 }
 
 pub enum BindingResourceInfo {
+    Buffer(ResourceNodeRef<Buffer, GpuRead>),
     TextureView(ResourceNodeRef<Texture, GpuRead>),
     Sampler(SampleInfo),
 }
@@ -87,4 +99,5 @@ pub struct BindGroupEntry {
 pub enum BindingResource {
     TextureView(TextureView),
     Sampler(Sample),
+    Buffer(Buffer),
 }

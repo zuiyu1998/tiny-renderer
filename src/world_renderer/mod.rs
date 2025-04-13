@@ -1,7 +1,9 @@
 pub mod meshes;
+pub mod render_camera;
 pub mod schedule;
 
 pub use meshes::*;
+pub use render_camera::*;
 pub use schedule::*;
 
 use std::sync::Arc;
@@ -10,7 +12,6 @@ use crate::gfx_base::device::Device;
 
 use crate::frame_graph::{FrameGraph, RenderContext, TransientResourceCache};
 use crate::gfx_base::pipeline::PipelineCache;
-use crate::gfx_base::texture_view::TextureView;
 
 pub trait Renderer {
     fn prepare(&self, context: &mut FrameGraphContext);
@@ -21,22 +22,6 @@ pub struct FrameGraphContext<'a> {
     pub camera: &'a RenderCamera,
     pub frame_graph: &'a mut FrameGraph,
     pub pipeline_cache: &'a PipelineCache,
-}
-
-pub enum RenderTarget {
-    Window(Arc<TextureView>),
-}
-
-pub struct RenderCamera {
-    pub render_target: RenderTarget,
-}
-
-impl RenderCamera {
-    pub fn get_texture_view(&self) -> Arc<TextureView> {
-        match &self.render_target {
-            RenderTarget::Window(texture_view) => texture_view.clone(),
-        }
-    }
 }
 
 pub struct WorldRenderer {
